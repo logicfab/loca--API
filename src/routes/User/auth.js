@@ -22,7 +22,7 @@ router.post("/register", async (req, res) => {
     }
     const user = new User({
       name,
-      email,
+      email: email.toLowerCase(),
       phone,
     });
 
@@ -41,7 +41,7 @@ router.post("/register", async (req, res) => {
 router.post("/sendOTP", async (req, res) => {
   try {
     const { phone } = req.body;
-    console.log(phone);
+
     const user = await User.findOne({
       "phone.code": phone.code,
       "phone.number": phone.number,
@@ -104,6 +104,17 @@ router.post("/verifyOTP", async (req, res) => {
     if (!verified) {
       throw { msg: "OTP verification failed!" };
     }
+
+    await User.findByIdAndUpdate(
+      verified._id,
+      {
+        "otp_verification.otp": null,
+        "otp_verification.expiresIn": null,
+      },
+      {
+        new: true,
+      }
+    );
 
     res.send({ status: "success", msg: "OTP verified!" });
   } catch (err) {

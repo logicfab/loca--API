@@ -16,6 +16,10 @@ const NeedySchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    assigned_team: {
+      type: mongoose.Schema.Types.ObjectId,
+      trim: true,
+    },
   },
   {
     timestamps: true,

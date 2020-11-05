@@ -1,16 +1,11 @@
 const mongoose = require("mongoose");
 
-const UserSchema = mongoose.Schema(
+const FirstAidTeamSchema = mongoose.Schema(
   {
-    name: {
-      type: String,
+    team_number: {
+      type: Number,
       required: true,
-      trim: true,
-    },
-    email: {
-      type: String,
-      required: true,
-      trim: true,
+      unique: true,
     },
     phone: {
       code: {
@@ -38,22 +33,13 @@ const UserSchema = mongoose.Schema(
         default: Date.now(),
       },
     },
-    otp_verification: {
-      otp: {
-        type: Number,
-      },
-      expiresIn: {
-        type: Date,
-      },
-    },
-    i_need_help: {
-      type: String,
-      default: false,
-    },
   },
   {
     timestamps: true,
   }
 );
 
-module.exports = User = mongoose.model("user", UserSchema);
+module.exports = FirstAidTeam = mongoose.model(
+  "firstaidteam",
+  FirstAidTeamSchema
+);

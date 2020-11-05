@@ -1,3 +1,4 @@
+const { firstAidTeam } = require("./firstaidteam");
 const { updateLocation, needy, teamMembers } = require("./user");
 
 let users = {};
@@ -19,6 +20,9 @@ const socketioConnect = (io) => {
 
     //help events
     needy(io, socket);
+
+    // firstAid Team
+    firstAidTeam(io, socket);
 
     socket.on("disconnect", () => {
       let removed_user_id = "";
