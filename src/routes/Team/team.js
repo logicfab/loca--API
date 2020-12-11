@@ -101,4 +101,38 @@ router.post("/removemember", async (req, res) => {
   }
 });
 
+// route /team/updateTeam
+// desc Update Existing Team
+// Method PATCH
+
+router.patch("/updateTeam", async (req, res) => {
+  try {
+    const { team_id, team_members } = req.body;
+
+    const teamFound = await Team.findById(team_id);
+
+    if (!teamFound) {
+      return res.status(400).send({ msg: "Team not available!" });
+    }
+
+    const response = await Team.findByIdAndUpdate(
+      team_id,
+      {
+        team_members: team_members,
+      },
+      {
+        new: true,
+      }
+    );
+
+    if (!response) {
+      return res.status(400).send({ msg: "Team not added!" });
+    }
+
+    res.send(response);
+  } catch (err) {
+    res.send(err.message ? { msg: err.msg } : err);
+  }
+});
+
 module.exports = router;

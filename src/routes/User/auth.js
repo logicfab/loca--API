@@ -10,6 +10,7 @@ const router = express.Router();
 router.post("/register", async (req, res) => {
   try {
     const { name, email, phone } = req.body;
+    console.log(req.body);
     const alreadyRegistered = await User.findOne({
       $or: [
         { email: email.toLowerCase() },
@@ -92,6 +93,7 @@ router.post("/sendOTP", async (req, res) => {
 router.post("/verifyOTP", async (req, res) => {
   try {
     const { phone, otp } = req.body;
+    console.log(req.body);
 
     const verified = await User.findOne({
       "phone.code": phone.code,
