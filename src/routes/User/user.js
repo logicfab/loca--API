@@ -42,13 +42,9 @@ router.post("/GetUsersByNumbers", async (req, res) => {
   try {
     const { numbers } = req.body;
 
-    console.log(numbers.length);
-
     const users = await User.find({
       "phone.number": { $in: numbers },
     }).select("_id");
-
-    console.log(users.length);
 
     res.send(users);
   } catch (err) {

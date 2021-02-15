@@ -33,7 +33,6 @@ const updateLocation = (io, socket) => {
   const { users } = require("./socket");
 
   socket.on(events_list.UPDATE_LOCATION, async (payload) => {
-    console.log("here!");
     const { user_id, user_location } = payload;
 
     console.log(user_location);
@@ -136,7 +135,7 @@ const needy = (io, socket) => {
 
       console.log(nearestTeam);
 
-      // Send Notification to nearestTeam (send user locaiton and name with it)
+      // Send Notification to nearestTeam (send user location and name with it)
 
       socket.emit(events_list.HELP_NEEDED, {
         status: true,

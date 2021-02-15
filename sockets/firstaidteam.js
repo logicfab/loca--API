@@ -18,8 +18,6 @@ const firstAidTeam = (io, socket) => {
         };
       }
 
-      console.log(location.lat, location.lng);
-
       location.lastUpdate = new Date();
 
       const response = await FirstAidTeam.findByIdAndUpdate(

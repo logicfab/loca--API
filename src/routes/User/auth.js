@@ -10,14 +10,14 @@ const router = express.Router();
 router.post("/register", async (req, res) => {
   try {
     const { name, email, phone } = req.body;
-    console.log(req.body);
+
     const alreadyRegistered = await User.findOne({
       $or: [
         { email: email.toLowerCase() },
         { "phone.code": phone.code, "phone.number": phone.number },
       ],
     });
-    console.log(alreadyRegistered);
+
     if (alreadyRegistered) {
       throw { msg: "User Already registered!" };
     }
@@ -78,7 +78,7 @@ router.post("/sendOTP", async (req, res) => {
       }
     );
 
-    // Send OTP to Number -> code goes here!
+    // TODO: Send OTP to Number -> code goes here!
 
     res.send({ msg: "Otp Sent to Your Number" });
   } catch (err) {
@@ -93,7 +93,6 @@ router.post("/sendOTP", async (req, res) => {
 router.post("/verifyOTP", async (req, res) => {
   try {
     const { phone, otp } = req.body;
-    console.log(req.body);
 
     const verified = await User.findOne({
       "phone.code": phone.code,
@@ -102,7 +101,6 @@ router.post("/verifyOTP", async (req, res) => {
       "otp_verification.expiresIn": { $gt: new Date() },
     });
 
-    console.log(verified);
     if (!verified) {
       throw { msg: "OTP verification failed!" };
     }
@@ -119,6 +117,47 @@ router.post("/verifyOTP", async (req, res) => {
     );
 
     res.send({ status: "success", msg: "OTP verified!" });
+  } catch (err) {
+    res.status(500).send(err.message ? { msg: err.message } : err);
+  }
+});
+
+// route  -> /user/auth/setNewPassword
+// desc   -> Set new password
+// Method -> POST
+
+router.post("/setNewPassword", async (req, res) => {
+  try {
+    const { user_id, password } = req.body;
+
+    const userNotVerified = await User.findOne({
+      _id: user_id,
+      "otp_verification.otp": { $not: null },
+    });
+
+    console.log(userNotVerified);
+
+    if (userNotVerified) {
+      throw { msg: "User not verified!" };
+    }
+
+    const response = await User.findByIdAndUpdate(
+      user_id,
+      {
+        $set: {
+          password,
+        },
+      },
+      {
+        new: true,
+      }
+    );
+
+    if (!response) {
+      throw { msg: "Password not updated!" };
+    }
+
+    res.send({ status: "success", msg: "Password Updated!" });
   } catch (err) {
     res.status(500).send(err.message ? { msg: err.message } : err);
   }

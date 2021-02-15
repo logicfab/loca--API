@@ -24,6 +24,10 @@ const UserSchema = mongoose.Schema(
         trim: true,
       },
     },
+    password: {
+      type: String,
+      required: false,
+    },
     location: {
       lat: {
         type: String,
