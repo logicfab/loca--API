@@ -6,6 +6,34 @@ const router = express.Router();
 // desc   -> Update User Location
 // Method -> POST
 
+/**
+ * @swagger
+ * /user/updateLocation:
+ *  post:
+ *    tags:
+ *      - USER
+ *    description: Update User Location
+  *    parameters:
+ *      - name: user_id
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: user _id
+ *      - name: user_location
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: user_location
+
+ *    produces:
+ *       - application/json
+ *    responses:
+ *      200:
+ *        description: Update User Location
+ *      400:
+ *       description: Error
+ */
+
 router.post("/updateLocation", async (req, res) => {
   try {
     const { user_id, user_location } = req.body;
@@ -37,6 +65,29 @@ router.post("/updateLocation", async (req, res) => {
 // route  -> /user/GetUsersByNumbers
 // desc   -> GET USERS BY NUMBERS
 // Method -> POST
+
+/**
+ * @swagger
+ * /user/GetUsersByNumbers:
+ *  post:
+ *    tags:
+ *      - USER
+ *    description: Get Users By Numbers
+  *    parameters:
+ *      - name: numbers
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: numbers
+
+ *    produces:
+ *       - application/json
+ *    responses:
+ *      200:
+ *        description: Numbers
+ *      400:
+ *       description: Error
+ */
 
 router.post("/GetUsersByNumbers", async (req, res) => {
   try {

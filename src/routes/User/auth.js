@@ -7,6 +7,39 @@ const router = express.Router();
 // desc   -> Register new User
 // Method -> POST
 
+/**
+ * @swagger
+ * /user/auth/register:
+ *  post:
+ *    tags:
+ *      - USER
+ *    description: Register User
+  *    parameters:
+ *      - name: name
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: name
+ *      - name: email
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: email
+ *      - name: phone
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: phone
+
+ *    produces:
+ *       - application/json
+ *    responses:
+ *      200:
+ *        description: user registered
+ *      400:
+ *       description: Error
+ */
+
 router.post("/register", async (req, res) => {
   try {
     const { name, email, phone } = req.body;
@@ -38,6 +71,29 @@ router.post("/register", async (req, res) => {
 // route  -> /user/auth/sendOTP
 // desc   -> Send OTP to User
 // Method -> POST
+
+/**
+ * @swagger
+ * /user/auth/sendOTP:
+ *  post:
+ *    tags:
+ *      - USER
+ *    description: Send OTP
+  *    parameters:
+ *      - name: phone
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: phone
+
+ *    produces:
+ *       - application/json
+ *    responses:
+ *      200:
+ *        description: user registered
+ *      400:
+ *       description: Error
+ */
 
 router.post("/sendOTP", async (req, res) => {
   try {
@@ -80,7 +136,7 @@ router.post("/sendOTP", async (req, res) => {
 
     // TODO: Send OTP to Number -> code goes here!
 
-    res.send({ msg: "Otp Sent to Your Number" });
+    res.send({ msg: "Otp Sent to Your Number",otp });
   } catch (err) {
     res.status(500).send(err.message ? { msg: err.message } : err);
   }
@@ -89,6 +145,35 @@ router.post("/sendOTP", async (req, res) => {
 // route  -> /user/auth/verifyOTP
 // desc   -> Verify OTP
 // Method -> POST
+
+/**
+ * @swagger
+ * /user/auth/verifyOTP:
+ *  post:
+ *    tags:
+ *      - USER
+ *    description: Verify OTP
+  *    parameters:
+ *      - name: phone
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: phone
+ *      - name: otp
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: otp
+
+
+ *    produces:
+ *       - application/json
+ *    responses:
+ *      200:
+ *        description: verify otp
+ *      400:
+ *       description: Error
+ */
 
 router.post("/verifyOTP", async (req, res) => {
   try {
@@ -125,6 +210,34 @@ router.post("/verifyOTP", async (req, res) => {
 // route  -> /user/auth/setNewPassword
 // desc   -> Set new password
 // Method -> POST
+
+/**
+ * @swagger
+ * /user/auth/setNewPassword:
+ *  post:
+ *    tags:
+ *      - USER
+ *    description: Set New Password
+  *    parameters:
+ *      - name: user_id
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: user_id
+ *      - name: password
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: password
+
+ *    produces:
+ *       - application/json
+ *    responses:
+ *      200:
+ *        description: Set New Password
+ *      400:
+ *       description: Error
+ */
 
 router.post("/setNewPassword", async (req, res) => {
   try {

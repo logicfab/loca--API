@@ -7,18 +7,42 @@ const router = express.Router();
 // desc   -> Register FirstAid User
 // Method -> POST
 
+/**
+ * @swagger
+ * /firstaid/team/register:
+ *  post:
+ *    tags:
+ *      - FIRST AID TEAM
+ *    description: Register
+  *    parameters:
+ *      - name: phone
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: phone
+ *      - name: team_number
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: team_number
+
+ *    produces:
+ *       - application/json
+ *    responses:
+ *      200:
+ *        description: Team
+ *      400:
+ *       description: Error
+ */
+
 router.post("/register", async (req, res) => {
   try {
     const { phone, team_number } = req.body;
-
-    console.log(req.body);
 
     const alreadyRegistered = await FirstAidTeam.findOne({
       "phone.code": phone.code,
       "phone.number": phone.number,
     });
-
-    console.log(alreadyRegistered);
 
     if (alreadyRegistered) {
       throw { msg: "Another Team with same number is registered!" };

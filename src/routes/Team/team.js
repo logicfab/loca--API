@@ -8,6 +8,34 @@ const router = express.Router();
 // desc Create new Team
 // Method POST
 
+/**
+ * @swagger
+ * /team:
+ *  post:
+ *    tags:
+ *      - USER
+ *    description: Create new Team
+  *    parameters:
+ *      - name: team_by
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: team_by
+ *      - name: team_name
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: team_name
+
+ *    produces:
+ *       - application/json
+ *    responses:
+ *      200:
+ *        description: Team
+ *      400:
+ *       description: Error
+ */
+
 router.post("/", async (req, res) => {
   try {
     const { team_by, team_name } = req.body;
@@ -38,6 +66,34 @@ router.post("/", async (req, res) => {
 // route /team/addmembers
 // desc Add team Members
 // Method POST
+
+/**
+ * @swagger
+ * /team/addmembers:
+ *  post:
+ *    tags:
+ *      - USER
+ *    description: Add Members
+  *    parameters:
+ *      - name: team_id
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: team_id
+ *      - name: team_members
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: team_members
+
+ *    produces:
+ *       - application/json
+ *    responses:
+ *      200:
+ *        description: Team
+ *      400:
+ *       description: Error
+ */
 
 router.post("/addmembers", async (req, res) => {
   try {
@@ -79,6 +135,34 @@ router.post("/addmembers", async (req, res) => {
 // desc Remove team Members
 // Method POST
 
+/**
+ * @swagger
+ * /team/removemember:
+ *  post:
+ *    tags:
+ *      - USER
+ *    description: Add Members
+  *    parameters:
+ *      - name: team_id
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: team_id
+ *      - name: member_id
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: member_id
+
+ *    produces:
+ *       - application/json
+ *    responses:
+ *      200:
+ *        description: Team
+ *      400:
+ *       description: Error
+ */
+
 router.post("/removemember", async (req, res) => {
   try {
     const { team_id, member_id } = req.body;
@@ -104,6 +188,34 @@ router.post("/removemember", async (req, res) => {
 // route /team/updateTeam
 // desc Update Existing Team
 // Method PATCH
+
+/**
+ * @swagger
+ * /team/updateTeam:
+ *  post:
+ *    tags:
+ *      - USER
+ *    description: Add Members
+  *    parameters:
+ *      - name: team_id
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: team_id
+ *      - name: team_members
+ *        in: formData
+ *        required: true
+ *        type: string
+ *        description: team_members
+
+ *    produces:
+ *       - application/json
+ *    responses:
+ *      200:
+ *        description: Team
+ *      400:
+ *       description: Error
+ */
 
 router.patch("/updateTeam", async (req, res) => {
   try {

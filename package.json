@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node src/index.js",
     "dev": "nodemon src/index.js"
   },
   "author": "Fakhar@logicfab",
@@ -18,7 +18,9 @@
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.10.11",
     "otp-generator": "^2.0.0",
-    "socket.io": "^2.3.0"
+    "socket.io": "^2.3.0",
+    "swagger-jsdoc": "^6.0.2",
+    "swagger-ui-express": "^4.1.6"
   },
   "devDependencies": {
     "nodemon": "^2.0.6"
