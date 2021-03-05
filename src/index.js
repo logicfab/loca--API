@@ -19,6 +19,7 @@ connectDb();
 app.use("/user", require("./routes/User"));
 app.use("/team", require("./routes/Team"));
 app.use("/firstaid", require("./routes/FirstAid"));
+app.use("/upload", require("./routes/FileUploads"));
 
 http.listen(PORT, () => {
   console.log("App is Listening at " + PORT);
