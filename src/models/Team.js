@@ -15,9 +15,18 @@ const TeamSchema = mongoose.Schema(
     },
     team_members: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true,
-        trim: true,
+        phone: {
+          code: {
+            type: String,
+            required: true,
+            trim: true,
+          },
+          number: {
+            type: String,
+            required: true,
+            trim: true,
+          },
+        },
       },
     ],
   },

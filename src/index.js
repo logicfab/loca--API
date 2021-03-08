@@ -20,6 +20,7 @@ app.use("/user", require("./routes/User"));
 app.use("/team", require("./routes/Team"));
 app.use("/firstaid", require("./routes/FirstAid"));
 app.use("/upload", require("./routes/FileUploads"));
+app.use("/uploads", express.static("uploads"));
 
 http.listen(PORT, () => {
   console.log("App is Listening at " + PORT);

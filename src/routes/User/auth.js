@@ -18,6 +18,7 @@ router.post("/register", async (req, res) => {
   try {
     const {
       email,
+      imgUrl,
       first_name,
       last_name,
       phone,
@@ -48,6 +49,7 @@ router.post("/register", async (req, res) => {
       {
         $set: {
           email,
+          imgUrl,
           first_name,
           last_name,
           date_of_birth,

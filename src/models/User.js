@@ -37,6 +37,10 @@ const UserSchema = mongoose.Schema(
         trim: true,
       },
     },
+    imgUrl: {
+      type: String,
+      trim: true,
+    },
     location: {
       lat: {
         type: String,
