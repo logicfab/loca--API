@@ -5,6 +5,21 @@ const User = require("../../models/User");
 const router = express.Router();
 
 // route /team
+// desc Get all Teams
+// Method GET
+router.get("/:id", async (req, res) => {
+  const allTeamsOfaUser = await Team.find({ team_by: req.params.id }).select(
+    "-__v"
+  );
+
+  if (!allTeamsOfaUser) {
+    return res.status(404).send("No teams Exist");
+  }
+
+  res.send({ msg: "All teams of a user", data: allTeamsOfaUser });
+});
+
+// route /team
 // desc Create new Team
 // Method POST
 

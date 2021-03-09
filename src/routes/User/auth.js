@@ -65,7 +65,7 @@ router.post("/register", async (req, res) => {
     res.send({
       success: true,
       msg: "Registered successfully",
-      data: registered_user,
+      user: registered_user._id,
     });
   } catch (err) {
     res.status(500).send(err.message ? { msg: err.message } : err);
@@ -207,7 +207,7 @@ router.post("/login", async (req, res) => {
         .status(400)
         .send({ success: false, msg: "Invalid Email or Password" });
 
-    return res.send({ success: true, msg: "Loggid in" });
+    return res.send({ success: true, msg: "Loggid in", user: user._id });
   } catch (err) {
     res.status(500).send(err.message ? { msg: err.message } : err);
   }
