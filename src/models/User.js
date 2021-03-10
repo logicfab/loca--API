@@ -67,6 +67,14 @@ const UserSchema = mongoose.Schema(
       type: String,
       default: false,
     },
+    detection_radius: {
+      type: Number,
+      default: 2,
+    },
+    app_status: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,
