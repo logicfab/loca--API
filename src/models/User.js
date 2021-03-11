@@ -71,7 +71,7 @@ const UserSchema = mongoose.Schema(
       type: Number,
       default: 2,
     },
-    app_status: {
+    is_online: {
       type: Boolean,
       default: true,
     },

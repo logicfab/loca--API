@@ -122,10 +122,10 @@ router.put("/toggleUserStatus/:id", async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) return res.status(404).send("User does not exist");
 
-  user.app_status = !user.app_status;
+  user.is_online = !user.is_online;
   await user.save();
 
-  res.send({ user_status: user.app_status });
+  res.send({ user_status: user.is_online });
 });
 
 module.exports = router;
