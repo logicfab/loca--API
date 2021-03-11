@@ -18,11 +18,12 @@ let events_list = {
 const teamMembers = (io, socket) => {
   socket.on(events_list.GET_TEAM_MEMBERS, async (payload) => {
     const { user_id } = payload;
+    console.log("user Id is", user_id);
     const teams = await Team.find({
-      $or: [{ team_by: user_id }, { team_members: user_id }],
+      team_by: user_id,
     }).populate({
       model: "user",
-      path: "team_by team_members",
+      path: "team_by",
     });
 
     socket.emit(events_list.GET_TEAM_MEMBERS, { teams });
