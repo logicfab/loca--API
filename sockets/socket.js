@@ -6,11 +6,10 @@ const socketioConnect = (io) => {
   console.log("Connection");
   io.on("connection", (socket) => {
     console.log("user connected", socket.id);
-    socket.on("establishConnection", (payload) => {
-      const { _id } = payload;
-      users[_id] = socket.id;
+    socket.on("establishConnection", ({ user_id }) => {
+      users[user_id] = socket.id;
+      console.log("users =", users);
     });
-    console.log(users);
 
     //teams
     teamMembers(io, socket);

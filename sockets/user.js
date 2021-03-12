@@ -162,7 +162,7 @@ const needy = (io, socket) => {
 
   // FRINDS HELP NEEDED
   socket.on(events_list.TEAM_HELP_NEEDED, async (payload) => {
-    const { user_id, needHelp } = payload;
+    const { user_id, team_id, needHelp } = payload;
 
     try {
       const userExists = await User.findById(user_id);
@@ -170,6 +170,23 @@ const needy = (io, socket) => {
         throw { msg: "User does not exist!" };
       }
 
+      const team = await Team.findById(team_id).select("team_members -_id");
+
+      const teamPhoneNumbers = team.team_members.map((t) => {
+        return t.phone;
+      });
+
+      let allUsersInTeam = await User.find({
+        phone: { $in: teamPhoneNumbers },
+      }).select("_id");
+
+      // Extracring user_ids
+      const userIds = allUsersInTeam.map((user) => {
+        return user._id;
+      });
+      console.log(userIds);
+
+      // Update USER DOC with Need help string
       const response = await User.findByIdAndUpdate(
         user_id,
         {
@@ -181,18 +198,18 @@ const needy = (io, socket) => {
           new: true,
         }
       );
-
       if (!response) {
         throw { msg: "Help could not be requested!" };
       }
 
-      const teams = await Team.find({
-        $or: [{ team_members: user_id }, { team_by: user_id }],
-      });
-
-      // Send Notification to every member of team where user is member
-
-      socket.emit(events_list.TEAM_HELP_NEEDED, { msg: "Help requested!" });
+      // const teams = await Team.find({
+      //   team_by: user_id,
+      // });
+      // // Send Notification to every member of team where user is member
+      // socket.emit(events_list.TEAM_HELP_NEEDED, {
+      //   msg: "Help requested!",
+      //   teams,
+      // });
     } catch (err) {
       socket.emit(events_list.HELP_NEEDED, err.message ? err.message : err);
     }
