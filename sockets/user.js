@@ -11,6 +11,8 @@ let events_list = {
   UPDATE_LOCATION: "UPDATE_LOCATION",
   HELP_NEEDED: "HELP_NEEDED",
   TEAM_HELP_NEEDED: "TEAM_HELP_NEEDED",
+  HELP_GOING: "HELP_GOING",
+  HELP_COMING: "HELP_COMING",
   GET_NEEDY: "GET_NEEDY",
   GET_TEAM_MEMBERS: "GET_TEAM_MEMBERS",
 };
@@ -163,6 +165,7 @@ const needy = (io, socket) => {
   // FRINDS HELP NEEDED
   socket.on(events_list.TEAM_HELP_NEEDED, async (payload) => {
     const { user_id, team_id, needHelp } = payload;
+    // user_id is for the person requesting help
 
     try {
       const userExists = await User.findById(user_id);
@@ -202,6 +205,8 @@ const needy = (io, socket) => {
         throw { msg: "Help could not be requested!" };
       }
 
+      // Send Notification to every member of team except help requester with type
+
       // const teams = await Team.find({
       //   team_by: user_id,
       // });
@@ -210,6 +215,52 @@ const needy = (io, socket) => {
       //   msg: "Help requested!",
       //   teams,
       // });
+    } catch (err) {
+      socket.emit(events_list.HELP_NEEDED, err.message ? err.message : err);
+    }
+  });
+
+  /*
+    TODO:
+      1- CHECK IF TEAM EXISTS ----> DONE
+      2- GET ALL PHONE NUMBERS OF TEAM ----> DONE
+      3- FIND THE USER_IDS OF ALL TEAM MEMBERS ----> DONE
+      4- FILTER THE USER_IDS OF REQUESTER AND HELPER ----> DONE
+      5- SEND NOTIFICATION TO ALL THE USERS IN THE ARRAY ----> INCOMPLETE
+  */
+  socket.on(events_list.HELP_GOING, async (payload) => {
+    const { helper_id, requester_id, team_id } = payload;
+    console.log("helper_id", helper_id);
+    console.log("requester_id", requester_id);
+
+    try {
+      const team = await Team.findById(team_id).select("team_members -_id");
+      if (!team) return res.status(404).send("Team does not exist");
+
+      const teamPhoneNumbers = team.team_members.map((t) => {
+        return t.phone;
+      });
+
+      let allUsersInTeam = await User.find({
+        phone: { $in: teamPhoneNumbers },
+      }).select("_id");
+
+      // Extracring user_ids
+      const userIds = allUsersInTeam.map((user) => {
+        return user._id;
+      });
+
+      const filteredUserIds = userIds.filter(
+        (user_id) =>
+          user_id.toString() != helper_id && user_id.toString() != requester_id
+      );
+
+      // SEND NOTIFICATION TO ALL THE USERS IN THE ARRAY HERE
+
+      socket.emit(events_list.HELP_GOING, {
+        msg: "Help Going!",
+        filteredUserIds: filteredUserIds,
+      });
     } catch (err) {
       socket.emit(events_list.HELP_NEEDED, err.message ? err.message : err);
     }

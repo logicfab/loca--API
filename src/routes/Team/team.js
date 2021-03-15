@@ -42,9 +42,14 @@ router.post("/", async (req, res) => {
       return res.status(400).send("Team with the same name already exists");
     }
 
+    const userPhone = {
+      phone: userExists.phone,
+    };
+
     const team = new Team({
       team_by,
       team_name,
+      team_members: [userPhone],
     });
 
     const response = await team.save();
