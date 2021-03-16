@@ -4,6 +4,7 @@ const { findByIdAndUpdate } = require("../src/models/FirstAidTeam");
 const FirstAidTeam = require("../src/models/FirstAidTeam");
 const Needy = require("../src/models/Needy");
 const Team = require("../src/models/Team");
+const TeamHelp = require("../src/models/teamHelp");
 const User = require("../src/models/User");
 const socket = require("./socket");
 
@@ -170,40 +171,70 @@ const needy = (io, socket) => {
     try {
       const userExists = await User.findById(user_id);
       if (!userExists) {
-        throw { msg: "User does not exist!" };
+        return res.status(404).send({ msg: "User does not exist!" });
       }
 
-      const team = await Team.findById(team_id).select("team_members -_id");
+      const team = await Team.findById(team_id);
+      if (!team) {
+        return res.status(404).send({ msg: "Team does not exist!" });
+      }
 
-      const teamPhoneNumbers = team.team_members.map((t) => {
-        return t.phone;
-      });
-
-      let allUsersInTeam = await User.find({
-        phone: { $in: teamPhoneNumbers },
-      }).select("_id");
-
-      // Extracring user_ids
-      const userIds = allUsersInTeam.map((user) => {
-        return user._id;
-      });
-      console.log(userIds);
-
-      // Update USER DOC with Need help string
-      const response = await User.findByIdAndUpdate(
-        user_id,
+      const newTeamHelp = await TeamHelp.findOneAndUpdate(
+        {
+          $and: [{ requester: user_id }, { team_selected: team_id }],
+        },
         {
           $set: {
-            i_need_help: needHelp,
+            time: Date.now(),
+            requester: user_id,
+            team_selected: team_id,
+            helpMessage: needHelp,
           },
         },
         {
           new: true,
+          upsert: true,
         }
       );
-      if (!response) {
-        throw { msg: "Help could not be requested!" };
-      }
+
+      console.log(newTeamHelp);
+      // const newTeamHelp = new TeamHelp({
+      //   requester: user_id,
+      //   team_selected: team_id,
+      //   helpMessage: needHelp,
+      // });
+
+      // await newTeamHelp.save();
+
+      // const teamPhoneNumbers = team.team_members.map((t) => {
+      //   return t.phone;
+      // });
+
+      // let allUsersInTeam = await User.find({
+      //   phone: { $in: teamPhoneNumbers },
+      // }).select("_id");
+
+      // // Extracring user_ids
+      // const userIds = allUsersInTeam.map((user) => {
+      //   return user._id;
+      // });
+      // console.log(userIds);
+
+      // // Update USER DOC with Need help string
+      // const response = await User.findByIdAndUpdate(
+      //   user_id,
+      //   {
+      //     $set: {
+      //       i_need_help: needHelp,
+      //     },
+      //   },
+      //   {
+      //     new: true,
+      //   }
+      // );
+      // if (!response) {
+      //   throw { msg: "Help could not be requested!" };
+      // }
 
       // Send Notification to every member of team except help requester with type
 

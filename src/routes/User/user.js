@@ -22,7 +22,6 @@ router.put("/updateUsersById/:id", async (req, res) => {
     { $set: req.body },
     { new: true }
   );
-
   if (!user) return res.status(404).send("User Does not exist");
 
   delete user.password;
