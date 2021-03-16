@@ -34,7 +34,7 @@ const upload = multer({
 });
 
 router.post("/", upload.single("profileImage"), function (req, res, next) {
-  console.log(req.file);
+  // console.log(req.file);
   // res.send(req.file);
   res.send({ imgUrl: req.file.path });
 });

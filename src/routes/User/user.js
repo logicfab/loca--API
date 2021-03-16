@@ -17,15 +17,17 @@ router.get("/getUsersById/:id", async (req, res) => {
 // desc   -> Update User By ID
 // Method -> PUT
 router.put("/updateUsersById/:id", async (req, res) => {
-  console.log("checking-----------------", req.body);
   const user = await User.findByIdAndUpdate(
     req.params.id,
     { $set: req.body },
     { new: true }
   );
+
   if (!user) return res.status(404).send("User Does not exist");
 
-  res.send(user);
+  delete user.password;
+
+  res.send({ user: user });
 });
 
 // route  -> /user/updateLocation

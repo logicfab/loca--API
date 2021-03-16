@@ -27,7 +27,6 @@ router.post("/register", async (req, res) => {
       password,
     } = req.body;
 
-    console.log(req.body);
     const alreadyRegistered = await User.findOne({
       email: email.toLowerCase(),
     });
@@ -62,10 +61,13 @@ router.post("/register", async (req, res) => {
 
     const registered_user = await user.save();
 
+    delete registered_user.password;
+    console.log(registered_user);
+
     res.send({
       success: true,
       msg: "Registered successfully",
-      user: registered_user._id,
+      user: registered_user,
     });
   } catch (err) {
     res.status(500).send(err.message ? { msg: err.message } : err);
@@ -197,17 +199,21 @@ router.post("/verifyOTP", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    let user = await User.findOne({ email: email }).select("+password");
 
-    let user = await User.findOne({ email: email });
     if (!user) return res.status(400).send("Invalid Email or Password");
 
     const validPassword = await bcrypt.compare(password, user.password);
+
+    user = user.toObject();
+    delete user.password;
+
     if (!validPassword)
       return res
         .status(400)
         .send({ success: false, msg: "Invalid Email or Password" });
 
-    return res.send({ success: true, msg: "Loggid in", user: user._id });
+    return res.send({ success: true, msg: "Logged in", user: user });
   } catch (err) {
     res.status(500).send(err.message ? { msg: err.message } : err);
   }
