@@ -16,6 +16,7 @@ let events_list = {
   HELP_COMING: "HELP_COMING",
   GET_NEEDY: "GET_NEEDY",
   GET_TEAM_MEMBERS: "GET_TEAM_MEMBERS",
+  FIND_FRIENDS: "FIND_FRIENDS",
 };
 
 const teamMembers = (io, socket) => {
@@ -211,7 +212,6 @@ const needy = (io, socket) => {
       const userIds = allUsersInTeam.map((user) => {
         return user._id;
       });
-      console.log(userIds);
 
       // Update USER DOC with Need help string
       // const response = await User.findByIdAndUpdate(
@@ -231,14 +231,10 @@ const needy = (io, socket) => {
 
       // Send Notification to every member of team except help requester with type
 
-      // const teams = await Team.find({
-      //   team_by: user_id,
-      // });
       // Send Notification to every member of team where user is member
-      // socket.emit(events_list.TEAM_HELP_NEEDED, {
-      //   msg: "Help requested!",
-      //   teams,
-      // });
+      socket.emit(events_list.TEAM_HELP_NEEDED, {
+        msg: "Notification sent to friends in group",
+      });
     } catch (err) {
       socket.emit(events_list.HELP_NEEDED, err.message ? err.message : err);
     }
@@ -257,8 +253,6 @@ const needy = (io, socket) => {
   */
   socket.on(events_list.HELP_GOING, async (payload) => {
     const { helper_id, requester_id, team_id } = payload;
-    console.log("helper_id", helper_id);
-    console.log("requester_id", requester_id);
 
     try {
       const requester = await User.findById(requester_id);
@@ -311,10 +305,38 @@ const needy = (io, socket) => {
 
       // SEND NOTIFICATION TO THE REQUESTER THAT THE HELP IS COMING
 
-      // socket.emit(events_list.HELP_GOING, {
-      //   msg: "Help Going!",
-      //   filteredUserIds: filteredUserIds,
-      // });
+      socket.emit(events_list.HELP_GOING, {
+        msg: "Help Going & Coming Notifications sent to group mates!",
+        filteredUserIds: filteredUserIds,
+      });
+    } catch (err) {
+      socket.emit(events_list.HELP_NEEDED, err.message ? err.message : err);
+    }
+  });
+
+  socket.on(events_list.FIND_FRIENDS, async (payload) => {
+    const { team_id, user_id } = payload;
+
+    try {
+      const team = await Team.findById(team_id);
+
+      const teamPhoneNumbers = team.team_members.map((t) => {
+        return t.phone;
+      });
+
+      let allUsersInTeam = await User.find({
+        phone: { $in: teamPhoneNumbers },
+      });
+
+      // Filter users and remove the person finding friends
+      const filteredUsers = allUsersInTeam.filter(
+        (user) => user._id.toString() != user_id
+      );
+
+      socket.emit(events_list.FIND_FRIENDS, {
+        msg: "Friends in the group!",
+        Friends: filteredUsers,
+      });
     } catch (err) {
       socket.emit(events_list.HELP_NEEDED, err.message ? err.message : err);
     }
