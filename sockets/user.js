@@ -198,29 +198,22 @@ const needy = (io, socket) => {
       );
 
       console.log(newTeamHelp);
-      // const newTeamHelp = new TeamHelp({
-      //   requester: user_id,
-      //   team_selected: team_id,
-      //   helpMessage: needHelp,
-      // });
 
-      // await newTeamHelp.save();
+      const teamPhoneNumbers = team.team_members.map((t) => {
+        return t.phone;
+      });
 
-      // const teamPhoneNumbers = team.team_members.map((t) => {
-      //   return t.phone;
-      // });
+      let allUsersInTeam = await User.find({
+        phone: { $in: teamPhoneNumbers },
+      }).select("_id");
 
-      // let allUsersInTeam = await User.find({
-      //   phone: { $in: teamPhoneNumbers },
-      // }).select("_id");
+      // Extracring user_ids
+      const userIds = allUsersInTeam.map((user) => {
+        return user._id;
+      });
+      console.log(userIds);
 
-      // // Extracring user_ids
-      // const userIds = allUsersInTeam.map((user) => {
-      //   return user._id;
-      // });
-      // console.log(userIds);
-
-      // // Update USER DOC with Need help string
+      // Update USER DOC with Need help string
       // const response = await User.findByIdAndUpdate(
       //   user_id,
       //   {
@@ -241,7 +234,7 @@ const needy = (io, socket) => {
       // const teams = await Team.find({
       //   team_by: user_id,
       // });
-      // // Send Notification to every member of team where user is member
+      // Send Notification to every member of team where user is member
       // socket.emit(events_list.TEAM_HELP_NEEDED, {
       //   msg: "Help requested!",
       //   teams,
@@ -253,11 +246,14 @@ const needy = (io, socket) => {
 
   /*
     TODO:
-      1- CHECK IF TEAM EXISTS ----> DONE
-      2- GET ALL PHONE NUMBERS OF TEAM ----> DONE
-      3- FIND THE USER_IDS OF ALL TEAM MEMBERS ----> DONE
-      4- FILTER THE USER_IDS OF REQUESTER AND HELPER ----> DONE
-      5- SEND NOTIFICATION TO ALL THE USERS IN THE ARRAY ----> INCOMPLETE
+      1- CHECK IF REQUESTER EXISTS ----> DONE
+      2- CHECK IF HELPER EXISTS ----> DONE
+      3- CHECK IF TEAM EXISTS ----> DONE
+      4- UPDATE TEAM HELP TABLE WITH HELPER ID ----> DONE
+      4- GET ALL PHONE NUMBERS OF TEAM ----> DONE
+      5- FIND THE USER_IDS OF ALL TEAM MEMBERS ----> DONE
+      6- FILTER THE USER_IDS OF REQUESTER AND HELPER ----> DONE
+      7- SEND NOTIFICATION TO ALL THE USERS IN THE ARRAY ----> INCOMPLETE
   */
   socket.on(events_list.HELP_GOING, async (payload) => {
     const { helper_id, requester_id, team_id } = payload;
@@ -265,10 +261,31 @@ const needy = (io, socket) => {
     console.log("requester_id", requester_id);
 
     try {
-      const team = await Team.findById(team_id).select("team_members -_id");
-      if (!team) return res.status(404).send("Team does not exist");
+      const requester = await User.findById(requester_id);
+      if (!requester) return res.status(404).send("Requester does not exist");
 
-      const teamPhoneNumbers = team.team_members.map((t) => {
+      const helper = await User.findById(helper_id);
+      if (!helper) return res.status(404).send("Helper does not exist");
+
+      const teamExists = await Team.findById(team_id);
+      if (!teamExists) return res.status(404).send("Team does not exist");
+
+      const teamHelp = await TeamHelp.findOneAndUpdate(
+        {
+          $and: [{ requester: requester_id }, { team_selected: team_id }],
+        },
+        {
+          $set: {
+            helper: helper_id,
+          },
+        },
+        {
+          new: true,
+        }
+      ).populate("team_selected");
+
+      // console.log(teamHelp.team_selected.team_members);
+      const teamPhoneNumbers = teamHelp.team_selected.team_members.map((t) => {
         return t.phone;
       });
 
@@ -286,12 +303,18 @@ const needy = (io, socket) => {
           user_id.toString() != helper_id && user_id.toString() != requester_id
       );
 
-      // SEND NOTIFICATION TO ALL THE USERS IN THE ARRAY HERE
+      // console.log(filteredUserIds);
 
-      socket.emit(events_list.HELP_GOING, {
-        msg: "Help Going!",
-        filteredUserIds: filteredUserIds,
-      });
+      // SEND NOTIFICATION TO ALL THE USERS IN THE filteredUserIds ARRAY HERE THAT #WHO IS GOING TO HELP REQUESTER
+
+      // SEND NOTIFICATION TO THE REQUESTER THAT THE HELP IS COMING
+
+      // SEND NOTIFICATION TO THE REQUESTER THAT THE HELP IS COMING
+
+      // socket.emit(events_list.HELP_GOING, {
+      //   msg: "Help Going!",
+      //   filteredUserIds: filteredUserIds,
+      // });
     } catch (err) {
       socket.emit(events_list.HELP_NEEDED, err.message ? err.message : err);
     }
