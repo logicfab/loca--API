@@ -68,28 +68,28 @@ const updateLocation = (io, socket) => {
       console.log(response);
 
       console.log(user_id);
-      // Send Updated Location To EveryOne(Team where user is member)
-      const teams = await Team.find({
-        $or: [{ team_by: user_id }, { team_members: user_id }],
-      }).populate({
-        model: "user",
-        path: "team_members team_by",
-      });
-      teams.forEach((team) => {
-        if (team.team_by._id != user._id) {
-          io.to(users[team.team_by]).emit(events_list.GET_TEAM_MEMBERS, {
-            teams,
-          });
-        }
-        team.team_members.forEach((member) => {
-          if (member._id != user_id) {
-            io.to(users[member._id]).emit(events_list.GET_TEAM_MEMBERS, {
-              teams,
-            });
-          }
-        });
-      });
-
+      // // Send Updated Location To EveryOne(Team where user is member)
+      // const teams = await Team.find({
+      //   $or: [{ team_by: user_id }, { team_members: user_id }],
+      // }).populate({
+      //   model: "user",
+      //   path: "team_members team_by",
+      // });
+      // teams.forEach((team) => {
+      //   if (team.team_by._id != user._id) {
+      //     io.to(users[team.team_by]).emit(events_list.GET_TEAM_MEMBERS, {
+      //       teams,
+      //     });
+      //   }
+      //   team.team_members.forEach((member) => {
+      //     if (member._id != user_id) {
+      //       io.to(users[member._id]).emit(events_list.GET_TEAM_MEMBERS, {
+      //         teams,
+      //       });
+      //     }
+      //   });
+      // });
+      // console.log("error");
       socket.emit(events_list.UPDATE_LOCATION, response);
     } catch (err) {
       socket.emit(events_list.UPDATE_LOCATION, err.message ? err.message : err);
