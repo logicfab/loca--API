@@ -17,6 +17,8 @@ let events_list = {
   GET_NEEDY: "GET_NEEDY",
   GET_TEAM_MEMBERS: "GET_TEAM_MEMBERS",
   FIND_FRIENDS: "FIND_FRIENDS",
+  UPLOAD_CONTACTS: "UPLOAD_CONTACTS",
+  ANONYMOUS_GROUP: "ANONYMOUS_GROUP",
 };
 
 const teamMembers = (io, socket) => {
@@ -236,7 +238,10 @@ const needy = (io, socket) => {
         msg: "Notification sent to friends in group",
       });
     } catch (err) {
-      socket.emit(events_list.HELP_NEEDED, err.message ? err.message : err);
+      socket.emit(
+        events_list.TEAM_HELP_NEEDED,
+        err.message ? err.message : err
+      );
     }
   });
 
@@ -310,7 +315,7 @@ const needy = (io, socket) => {
         filteredUserIds: filteredUserIds,
       });
     } catch (err) {
-      socket.emit(events_list.HELP_NEEDED, err.message ? err.message : err);
+      socket.emit(events_list.HELP_GOING, err.message ? err.message : err);
     }
   });
 
@@ -338,7 +343,72 @@ const needy = (io, socket) => {
         Friends: filteredUsers,
       });
     } catch (err) {
-      socket.emit(events_list.HELP_NEEDED, err.message ? err.message : err);
+      socket.emit(events_list.FIND_FRIENDS, err.message ? err.message : err);
+    }
+  });
+
+  socket.on(events_list.UPLOAD_CONTACTS, async (payload) => {
+    const { contacts } = payload;
+    let phoneNumbers = [];
+
+    try {
+      contacts.forEach((item) => {
+        phoneNumbers.push(item.phone);
+      });
+
+      let friends = await User.find({
+        phone: { $in: phoneNumbers },
+      });
+
+      friends.forEach((obj) => {
+        contacts.forEach((obj2) => {
+          if (
+            obj.phone.code === obj2.phone.code &&
+            obj.phone.number === obj2.phone.number
+          ) {
+            obj._doc.contactName = obj2.name;
+          }
+        });
+      });
+
+      console.log("Friends", friends);
+
+      socket.emit(events_list.UPLOAD_CONTACTS, {
+        msg: "Friends in Contacts!",
+        Friends: friends,
+      });
+    } catch (err) {
+      socket.emit(events_list.UPLOAD_CONTACTS, err.message ? err.message : err);
+    }
+  });
+
+  socket.on(events_list.ANONYMOUS_GROUP, async (payload) => {
+    const { contacts, user_id } = payload;
+
+    try {
+      const anonymousTeam = await Team.findOneAndUpdate(
+        {
+          team_by: user_id,
+          team_type: "anonymous",
+          team_name: "anonymous",
+        },
+        {
+          team_members: contacts,
+        },
+        {
+          new: true,
+          upsert: true,
+        }
+      );
+
+      console.log(anonymousTeam);
+
+      socket.emit(events_list.ANONYMOUS_GROUP, {
+        msg: "Friends in Contacts!",
+        Friends: anonymousTeam,
+      });
+    } catch (err) {
+      socket.emit(events_list.ANONYMOUS_GROUP, err.message ? err.message : err);
     }
   });
 };

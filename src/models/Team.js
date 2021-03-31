@@ -13,6 +13,12 @@ const TeamSchema = mongoose.Schema(
       required: true,
       trim: true,
     },
+    team_type: {
+      type: String,
+      trim: true,
+      enum: ["normal", "anonymous"],
+      default: "normal",
+    },
     team_members: [
       {
         phone: {
