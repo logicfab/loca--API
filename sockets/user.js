@@ -19,6 +19,7 @@ let events_list = {
   FIND_FRIENDS: "FIND_FRIENDS",
   UPLOAD_CONTACTS: "UPLOAD_CONTACTS",
   ANONYMOUS_GROUP: "ANONYMOUS_GROUP",
+  GET_ANONYMOUS_GROUP: "GET_ANONYMOUS_GROUP",
 };
 
 const teamMembers = (io, socket) => {
@@ -333,6 +334,13 @@ const needy = (io, socket) => {
         phone: { $in: teamPhoneNumbers },
       });
 
+      if (!(allUsersInTeam.length > 0)) {
+        socket.emit(events_list.FIND_FRIENDS, {
+          msg: "No Friends in the group!",
+          Friends: [],
+        });
+      }
+
       // Filter users and remove the person finding friends
       const filteredUsers = allUsersInTeam.filter(
         (user) => user._id.toString() != user_id
@@ -359,6 +367,13 @@ const needy = (io, socket) => {
       let friends = await User.find({
         phone: { $in: phoneNumbers },
       });
+
+      if (!(friends.length > 0)) {
+        socket.emit(events_list.UPLOAD_CONTACTS, {
+          msg: "No Friends in Contact!",
+          Friends: [],
+        });
+      }
 
       friends.forEach((obj) => {
         contacts.forEach((obj2) => {
@@ -409,6 +424,45 @@ const needy = (io, socket) => {
       });
     } catch (err) {
       socket.emit(events_list.ANONYMOUS_GROUP, err.message ? err.message : err);
+    }
+  });
+
+  socket.on(events_list.GET_ANONYMOUS_GROUP, async (payload) => {
+    const { user_id } = payload;
+    let phoneNumbers = [];
+
+    try {
+      const anonymousTeam = await Team.findOne({
+        team_by: user_id,
+        team_type: "anonymous",
+        team_name: "anonymous",
+      }).select("-__v");
+
+      if (!anonymousTeam) {
+        socket.emit(events_list.GET_ANONYMOUS_GROUP, {
+          msg: "Anonymous Team does not exist",
+          Friends: [],
+        });
+      }
+
+      anonymousTeam.team_members.forEach((item) => {
+        phoneNumbers.push(item.phone);
+      });
+
+      const friends = await User.find({
+        phone: { $in: phoneNumbers },
+      });
+
+      console.log(friends);
+      socket.emit(events_list.GET_ANONYMOUS_GROUP, {
+        msg: "Anonymous Team",
+        Friends: friends,
+      });
+    } catch (err) {
+      socket.emit(
+        events_list.GET_ANONYMOUS_GROUP,
+        err.message ? err.message : err
+      );
     }
   });
 };
