@@ -25,6 +25,7 @@ router.post("/register", async (req, res) => {
       date_of_birth,
       gender,
       password,
+      userType,
     } = req.body;
 
     const alreadyRegistered = await User.findOne({
@@ -54,6 +55,7 @@ router.post("/register", async (req, res) => {
           date_of_birth,
           gender,
           password: hashedPassword,
+          userType,
         },
       },
       { new: true }

@@ -26,6 +26,11 @@ const UserSchema = mongoose.Schema(
       select: false,
       trim: true,
     },
+    userType: {
+      type: String,
+      required: true,
+      enum: ["normal", "professional"],
+    },
     phone: {
       code: {
         type: String,
