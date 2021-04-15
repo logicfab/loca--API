@@ -200,10 +200,13 @@ router.post("/verifyOTP", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
-    let user = await User.findOne({ email: email }).select("+password");
+    const { email, password, userType } = req.body;
+    let user = await User.findOne({ email: email, userType: userType }).select(
+      "+password"
+    );
 
-    if (!user) return res.status(400).send("Invalid Email or Password");
+    if (!user)
+      return res.status(400).send("Invalid Email, Password or User Type");
 
     const validPassword = await bcrypt.compare(password, user.password);
 

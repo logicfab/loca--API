@@ -28,7 +28,6 @@ const UserSchema = mongoose.Schema(
     },
     userType: {
       type: String,
-      required: true,
       enum: ["normal", "professional"],
     },
     phone: {
