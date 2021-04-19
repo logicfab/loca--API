@@ -88,10 +88,14 @@ router.post("/GetUsersByNumbers", async (req, res) => {
 // Method -> GET
 
 router.get("/getDetectionRadius/:id", async (req, res) => {
-  const user = await User.findById(req.params.id);
-  if (!user) return res.status(404).send("User does not exist");
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).send("User does not exist");
 
-  res.send({ detection_radius: user.detection_radius });
+    res.send({ detection_radius: user.detection_radius });
+  } catch (err) {
+    res.status(500).send(err.message ? { msg: err.message } : err);
+  }
 });
 
 // route  -> /user/updateDetectionRadius
@@ -99,20 +103,24 @@ router.get("/getDetectionRadius/:id", async (req, res) => {
 // Method -> Update
 
 router.put("/updateDetectionRadius/:id", async (req, res) => {
-  const { detection_radius } = req.body;
-  const user = await User.findByIdAndUpdate(
-    req.params.id,
-    {
-      $set: {
-        detection_radius,
+  try {
+    const { detection_radius } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          detection_radius,
+        },
       },
-    },
-    { new: true }
-  );
+      { new: true }
+    );
 
-  if (!user) return res.status(404).send("User does not exist");
+    if (!user) return res.status(404).send("User does not exist");
 
-  res.send({ detection_radius: user.detection_radius });
+    res.send({ detection_radius: user.detection_radius });
+  } catch (err) {
+    res.status(500).send(err.message ? { msg: err.message } : err);
+  }
 });
 
 // route  -> /user/toggleUserStatus
@@ -120,13 +128,42 @@ router.put("/updateDetectionRadius/:id", async (req, res) => {
 // Method -> Update
 
 router.put("/toggleUserStatus/:id", async (req, res) => {
-  const user = await User.findById(req.params.id);
-  if (!user) return res.status(404).send("User does not exist");
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).send("User does not exist");
 
-  user.is_online = !user.is_online;
-  await user.save();
+    user.is_online = !user.is_online;
+    await user.save();
 
-  res.send({ user_status: user.is_online });
+    res.send({ user_status: user.is_online });
+  } catch (err) {
+    res.status(500).send(err.message ? { msg: err.message } : err);
+  }
+});
+
+// route  -> /user/setOnesignalId/:id
+// desc   -> Set One Signal ID
+// Method -> Put
+
+router.put("/setOnesignalId/:id", async (req, res) => {
+  try {
+    const { oneSignalId } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          one_signal_id: oneSignalId,
+        },
+      },
+      { new: true }
+    );
+    if (!user) return res.status(404).send("User not Found");
+
+    res.send({ msg: "One Signal Id Updated", data: user });
+  } catch (err) {
+    res.status(500).send(err.message ? { msg: err.message } : err);
+  }
 });
 
 module.exports = router;

@@ -6,7 +6,8 @@ const socketioConnect = (io) => {
   console.log("Connection");
   io.on("connection", (socket) => {
     console.log("user connected", socket.id);
-    socket.on("establishConnection", ({ user_id }) => {
+
+    socket.on("ESTABLISH_CONNECTION", ({ user_id }) => {
       users[user_id] = socket.id;
       console.log("users =", users);
     });
@@ -18,12 +19,12 @@ const socketioConnect = (io) => {
     updateLocation(io, socket);
 
     //help events
-    needy(io, socket);
+    needy(io, socket, users);
 
     // firstAid Team
     firstAidTeam(io, socket);
 
-    socket.on("disconnect", () => {
+    socket.on("DISCONNECT", () => {
       let removed_user_id = "";
       for (var key in users) {
         if (users[key] == socket.id) {

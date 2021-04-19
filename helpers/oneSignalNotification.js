@@ -1,13 +1,13 @@
 const OneSignal = require("onesignal-node");
 
 const client = new OneSignal.Client(
-  "9ca675b9-8643-4420-9882-36c46afe45d7",
-  "MWIzYzViNTYtYjAwYy00Y2Y2LTgzOTYtYWQ0YjQyM2MzOGYx",
-  "YzRjMTcwOGYtYjZiYy00MmQzLWEzYjUtMjRlN2NiOWJiNjQ3"
+  "5c60d56a-599a-404e-b4a4-debc26fa4409",
+  "MWQwZTQxYWEtYWQ2MC00ODJmLWFkMWEtNTIxM2QxNWRkNDMz",
+  "ZWQ3NTU5ZWItYmI3ZC00MjVhLWE0NDQtZjBkNWViN2MyNjM1"
 );
 
 module.exports = {
-  sendNotificationToOwner: async (heading, message, data, participantsIds) => {
+  sendNotification: async (heading, message, data, participantsIds) => {
     const notification = {
       headings: { en: heading },
       contents: {

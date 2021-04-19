@@ -1,6 +1,6 @@
 let geoLib = require("geo-lib");
+const { sendNotification } = require("../helpers/oneSignalNotification");
 const { findByIdAndUpdate } = require("../src/models/FirstAidTeam");
-
 const FirstAidTeam = require("../src/models/FirstAidTeam");
 const Needy = require("../src/models/Needy");
 const Team = require("../src/models/Team");
@@ -100,7 +100,7 @@ const updateLocation = (io, socket) => {
   });
 };
 
-const needy = (io, socket) => {
+const needy = (io, socket, socketUsers) => {
   socket.on(events_list.HELP_NEEDED, async (payload) => {
     const { user_id, description } = payload;
     try {
@@ -211,33 +211,34 @@ const needy = (io, socket) => {
         phone: { $in: teamPhoneNumbers },
       }).select("_id");
 
-      // Extracring user_ids
+      // Extracring One Signal Ids of all users in team
+      const oneSignalIds = allUsersInTeam.map((user) => {
+        return user.one_signal_id;
+      });
+
+      // Extracting Socket Ids
       const userIds = allUsersInTeam.map((user) => {
         return user._id;
       });
 
-      // Update USER DOC with Need help string
-      // const response = await User.findByIdAndUpdate(
-      //   user_id,
-      //   {
-      //     $set: {
-      //       i_need_help: needHelp,
-      //     },
-      //   },
-      //   {
-      //     new: true,
-      //   }
-      // );
-      // if (!response) {
-      //   throw { msg: "Help could not be requested!" };
-      // }
+      // Send Notification to every member of team except help requester with user object
+      sendNotification(
+        "Help Needed",
+        `${userExists.first_name} needs you!`,
+        {
+          user: userExists,
+        },
+        oneSignalIds
+      );
 
-      // Send Notification to every member of team except help requester with type
+      userIds.forEach((id) => {
+        socket.emit(`${events_list.TEAM_HELP_NEEDED}-${id}`, {
+          msg: "Notification sent to friends in group",
+          data: userExists,
+        });
+      });
 
       // Send Notification to every member of team where user is member
-      socket.emit(events_list.TEAM_HELP_NEEDED, {
-        msg: "Notification sent to friends in group",
-      });
     } catch (err) {
       socket.emit(
         events_list.TEAM_HELP_NEEDED,
@@ -306,6 +307,14 @@ const needy = (io, socket) => {
       // console.log(filteredUserIds);
 
       // SEND NOTIFICATION TO ALL THE USERS IN THE filteredUserIds ARRAY HERE THAT #WHO IS GOING TO HELP REQUESTER
+      sendNotification(
+        "Help Going",
+        `${helper.first_name} is going to ${requester._id}`,
+        {
+          user: helper,
+        },
+        oneSignalIds
+      );
 
       // SEND NOTIFICATION TO THE REQUESTER THAT THE HELP IS COMING
 

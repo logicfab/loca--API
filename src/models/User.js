@@ -14,6 +14,10 @@ const UserSchema = mongoose.Schema(
       type: String,
       trim: true,
     },
+    one_signal_id: {
+      type: String,
+      trim: true,
+    },
     date_of_birth: {
       type: Date,
     },
