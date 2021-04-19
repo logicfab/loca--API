@@ -10,15 +10,11 @@ const NeedySchema = mongoose.Schema(
     status: {
       type: String,
       enum: ["unresolved", "resolved"],
-      default: "unresolved",
-    },
-    description: {
-      type: String,
-      required: true,
     },
     assigned_team: {
       type: mongoose.Schema.Types.ObjectId,
       trim: true,
+      ref: "user",
     },
   },
   {

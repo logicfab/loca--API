@@ -16,6 +16,11 @@ const TeamHelpSchema = mongoose.Schema(
       ref: "team",
       required: true,
     },
+    status: {
+      type: String,
+      enum: ["pending", "accepted", "cancelled", "completed"],
+      default: "pending",
+    },
     helpMessage: {
       type: String,
       required: true,
