@@ -264,25 +264,32 @@ const needy = (io, socket, socketUsers) => {
         }
       );
 
-      console.log(newTeamHelp);
-
       const teamPhoneNumbers = team.team_members.map((t) => {
         return t.phone;
       });
 
       let allUsersInTeam = await User.find({
         phone: { $in: teamPhoneNumbers },
-      }).select("_id");
-
-      // Extracring One Signal Ids of all users in team
-      const oneSignalIds = allUsersInTeam.map((user) => {
-        return user.one_signal_id;
       });
 
-      // Extracting Socket Ids
       const userIds = allUsersInTeam.map((user) => {
         return user._id;
       });
+
+      // filter the user ids so it does not contain the user id of help requester
+      const filteredUserIds = userIds.filter((id) => id.toString() != user_id);
+      console.log("filteredUserIds ------->", filteredUserIds);
+
+      // Querying DB for one signal IDs of fitered users
+      let oneSignalIds = await User.find({
+        _id: { $in: filteredUserIds },
+      }).select("one_signal_id");
+
+      oneSignalIds = oneSignalIds.map((user) => {
+        return user.one_signal_id;
+      });
+
+      console.log("oneSignalIds ------->", oneSignalIds);
 
       // Send Notification to every member of team except help requester with user object
       sendNotification(
@@ -290,14 +297,18 @@ const needy = (io, socket, socketUsers) => {
         `${userExists.first_name} needs you!`,
         {
           user: userExists,
+          notificationType: "TEAM_HELP_NEEDED",
+          team_id: team_id,
         },
         oneSignalIds
       );
 
-      userIds.forEach((id) => {
+      filteredUserIds.forEach((id) => {
         socket.emit(`${events_list.TEAM_HELP_NEEDED}-${id}`, {
           msg: "Notification sent to friends in group",
-          data: userExists,
+          user: userExists,
+          notificationType: "TEAM_HELP_NEEDED",
+          team_id: team_id,
         });
       });
 

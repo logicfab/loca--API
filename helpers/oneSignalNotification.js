@@ -19,12 +19,13 @@ module.exports = {
       data,
       include_player_ids: participantsIds,
     };
-    console.log(data);
+    // console.log(data);
     console.log("sending notification");
     ///
     try {
       const response = await client.createNotification(notification);
-      console.log(response.body.id);
+      // console.log(response.body.id);
+      console.log("notification sent");
     } catch (e) {
       if (e instanceof OneSignal.HTTPError) {
         // When status code of HTTP response is not 2xx, HTTPError is thrown.
