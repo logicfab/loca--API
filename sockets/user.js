@@ -272,6 +272,7 @@ const needy = (io, socket, socketUsers) => {
         phone: { $in: teamPhoneNumbers },
       });
 
+      console.log("All users in team", allUsersInTeam);
       const userIds = allUsersInTeam.map((user) => {
         return user._id;
       });
@@ -304,16 +305,20 @@ const needy = (io, socket, socketUsers) => {
       );
 
       filteredUserIds.forEach((id) => {
-        socket.emit(`${events_list.TEAM_HELP_NEEDED}-${id}`, {
-          msg: "Notification sent to friends in group",
-          user: userExists,
-          notificationType: "TEAM_HELP_NEEDED",
-          team_id: team_id,
-        });
+        if (socketUsers[id]) {
+          console.log(id, ":", socketUsers[id]);
+          io.to(socketUsers[id]).emit(events_list.TEAM_HELP_NEEDED, {
+            msg: "Notification sent to friends in group",
+            user: userExists,
+            notificationType: "TEAM_HELP_NEEDED",
+            team_id: team_id,
+          });
+        }
       });
 
       // Send Notification to every member of team where user is member
     } catch (err) {
+      console.log(err.message);
       socket.emit(
         events_list.TEAM_HELP_NEEDED,
         err.message ? err.message : err
