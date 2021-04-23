@@ -9,7 +9,7 @@ const NeedySchema = mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["unresolved", "resolved"],
+      enum: ["unresolved", "resolved", "cancelled"],
     },
     assigned_team: {
       type: mongoose.Schema.Types.ObjectId,

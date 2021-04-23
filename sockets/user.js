@@ -4,6 +4,7 @@ const {
   findByIdAndUpdate,
   findOneAndUpdate,
 } = require("../src/models/FirstAidTeam");
+
 const FirstAidTeam = require("../src/models/FirstAidTeam");
 const Needy = require("../src/models/Needy");
 const Team = require("../src/models/Team");
@@ -16,10 +17,13 @@ let events_list = {
   UPDATE_LOCATION: "UPDATE_LOCATION",
   FIRST_AID_HELP_NEEDED: "FIRST_AID_HELP_NEEDED",
   ACCEPT_FIRST_AID_HELP: "ACCEPT_FIRST_AID_HELP",
+  CANCEL_FIRST_AID_HELP_TEAM: "CANCEL_FIRST_AID_HELP_TEAM",
+  CANCEL_FIRST_AID_HELP: "CANCEL_FIRST_AID_HELP",
   TEAM_HELP_NEEDED: "TEAM_HELP_NEEDED",
   CANCEL_HELP_REQUEST: "CANCEL_HELP_REQUEST",
   HELP_GOING: "HELP_GOING",
   HELP_COMING: "HELP_COMING",
+  HELP_CANCEL: "HELP_CANCEL",
   GET_NEEDY: "GET_NEEDY",
   GET_TEAM_MEMBERS: "GET_TEAM_MEMBERS",
   FIND_FRIENDS: "FIND_FRIENDS",
@@ -27,9 +31,10 @@ let events_list = {
   ANONYMOUS_GROUP: "ANONYMOUS_GROUP",
   GET_ANONYMOUS_GROUP: "GET_ANONYMOUS_GROUP",
   SET_VEHICLE_LOCATION: "SET_VEHICLE_LOCATION",
+  GET_VEHICLE_LOCATION: "GET_VEHICLE_LOCATION",
 };
 
-const teamMembers = (io, socket) => {
+const teamMembers = (io, socket, socketUsers) => {
   socket.on(events_list.GET_TEAM_MEMBERS, async (payload) => {
     const { user_id } = payload;
     console.log("user Id is", user_id);
@@ -37,14 +42,17 @@ const teamMembers = (io, socket) => {
       team_by: user_id,
     }).populate({
       model: "user",
+
       path: "team_by",
     });
 
-    socket.emit(events_list.GET_TEAM_MEMBERS, { teams });
+    socket
+      .to(socketUsers[user_id])
+      .emit(events_list.GET_TEAM_MEMBERS, { teams });
   });
 };
 
-const updateLocation = (io, socket) => {
+const updateLocation = (io, socket, socketUsers) => {
   const { users } = require("./socket");
 
   socket.on(events_list.UPDATE_LOCATION, async (payload) => {
@@ -100,7 +108,9 @@ const updateLocation = (io, socket) => {
       //   });
       // });
       // console.log("error");
-      socket.emit(events_list.UPDATE_LOCATION, response);
+      socket
+        .to(socketUsers[user_id])
+        .emit(events_list.UPDATE_LOCATION, response);
     } catch (err) {
       socket.emit(events_list.UPDATE_LOCATION, err.message ? err.message : err);
     }
@@ -108,14 +118,105 @@ const updateLocation = (io, socket) => {
 };
 
 const needy = (io, socket, socketUsers) => {
+  socket.on(events_list.CANCEL_FIRST_AID_HELP_TEAM, async (payload) => {
+    try {
+      const { user_id } = payload;
+      const user = await User.findById(user_id);
+
+      const needy = await Needy.findOneAndUpdate(
+        { user: user_id, status: "unresolved" },
+        {
+          $unset: {
+            assigned_team: 1,
+          },
+        },
+        { new: true, upsert: true }
+      );
+      if (!user) throw { msg: "User does not exist" };
+      socket
+        .to(socketUsers[user_id])
+        .emit(events_list.CANCEL_FIRST_AID_HELP_TEAM, { needy });
+    } catch (err) {
+      throw err;
+    }
+  });
+  socket.on(events_list.CANCEL_FIRST_AID_HELP, async (payload) => {
+    try {
+      const { user_id } = payload;
+      const user = await User.findById(user_id);
+
+      const needy = await Needy.findOneAndUpdate(
+        { user: user_id, status: "unresolved" },
+        {
+          $unset: {
+            assigned_team: 1,
+          },
+          $set: {
+            status: "cancelled",
+          },
+        },
+        { new: true, upsert: true }
+      );
+      if (!user) throw { msg: "User does not exist" };
+      const firstAidTeams = await User.find({ userType: "professional" });
+
+      let nearestFirstAidTeams = []; // PROFESSIONAL USER ID FOR SOCKET EMISSION
+      let oneSignalIdsOfFirstAidTeams = []; // One signal IDs for notifications
+
+      firstAidTeams.forEach((team) => {
+        let result = geoLib.distance({
+          p1: {
+            lat: user.location.lat,
+            lon: user.location.lng,
+          },
+          p2: {
+            lat: team.location.lat,
+            lon: team.location.lng,
+          },
+        });
+        if (result.distance < user.detection_radius * 1000) {
+          team.one_signal_id
+            ? oneSignalIdsOfFirstAidTeams.push(team.one_signal_id)
+            : console.log();
+          nearestFirstAidTeams.push(team._id);
+        }
+      });
+      // console.log(oneSignalIdsOfFirstAidTeams);
+      // Send Notification to nearestTeams (send user locaiton and name with it)
+      sendNotification(
+        "First Aid Help Cancelled",
+        `${user.first_name} cancelled First Aid!`,
+        {
+          user: user,
+        },
+        oneSignalIdsOfFirstAidTeams
+      );
+
+      // Emit to all first aid teams so that they can accept or reject a request
+      nearestFirstAidTeams.forEach((id) => {
+        socket
+          .to([socketUsers[id]])
+          .emit(`${events_list.CANCEL_FIRST_AID_HELP}`, {
+            msg: `${user.first_name} cancelled First Aid!`,
+            user: user,
+          });
+      });
+      socket
+        .to(socketUsers[user_id])
+        .emit(events_list.CANCEL_FIRST_AID_HELP, { needy });
+    } catch (err) {
+      throw err;
+    }
+  });
+
   socket.on(events_list.FIRST_AID_HELP_NEEDED, async (payload) => {
     try {
       const { user_id } = payload;
       const user = await User.findById(user_id);
 
-      if (!user) return res.status(404).send("User does not exist");
+      if (!user) throw { msg: "User does not exist" };
 
-      const needy = await findOneAndUpdate(
+      const needy = await Needy.findOneAndUpdate(
         { user: user_id, status: "unresolved" },
         {
           $unset: {
@@ -125,7 +226,8 @@ const needy = (io, socket, socketUsers) => {
         { new: true, upsert: true }
       );
 
-      if (!needy) return res.status(404).send("An error occurred");
+      if (!needy) throw { msg: "An error occurred" };
+      // return res.status(404).send("An error occurred");
 
       const firstAidTeams = await User.find({ userType: "professional" });
 
@@ -144,11 +246,13 @@ const needy = (io, socket, socketUsers) => {
           },
         });
         if (result.distance < user.detection_radius * 1000) {
-          oneSignalIdsOfFirstAidTeams.push(team.one_signal_id);
+          team.one_signal_id
+            ? oneSignalIdsOfFirstAidTeams.push(team.one_signal_id)
+            : console.log();
           nearestFirstAidTeams.push(team._id);
         }
       });
-
+      // console.log(oneSignalIdsOfFirstAidTeams);
       // Send Notification to nearestTeams (send user locaiton and name with it)
       sendNotification(
         "First Aid Help Required",
@@ -161,10 +265,12 @@ const needy = (io, socket, socketUsers) => {
 
       // Emit to all first aid teams so that they can accept or reject a request
       nearestFirstAidTeams.forEach((id) => {
-        socket.emit(`${events_list.FIRST_AID_HELP_NEEDED}-${id}`, {
-          msg: `${user.first_name} needs First Aid!`,
-          user: user,
-        });
+        socket
+          .to(socketUsers[id])
+          .emit(`${events_list.FIRST_AID_HELP_NEEDED}`, {
+            msg: `${user.first_name} needs First Aid!`,
+            user: user,
+          });
       });
     } catch (err) {
       socket.emit(
@@ -176,8 +282,9 @@ const needy = (io, socket, socketUsers) => {
 
   socket.on(events_list.ACCEPT_FIRST_AID_HELP, async (payload) => {
     try {
+      console.log("ACCEPT_FIRST_AID_HELP=>>>");
       const { helper_id, user_id } = payload;
-      const needy = await findOneAndUpdate(
+      const needy = await Needy.findOneAndUpdate(
         {
           user: user_id,
           status: "unresolved",
@@ -189,28 +296,80 @@ const needy = (io, socket, socketUsers) => {
         },
         { new: true }
       );
-      if (!needy) res.status(404).send("Help does not exist");
+      if (!needy) throw { msg: "Help does not exist" };
+      // return res.status(404).send("Help does not exist");
 
       const user = await User.findById(user_id);
-      if (!user) res.status(404).send("User not found");
+      if (!user) throw { msg: "User not Found!" };
+      //  res.status(404).send("User not found");
 
       const helper = await User.findById(helper_id);
-      if (!helper) res.status(404).send("Helper not found");
+      if (!helper) throw { msg: "Helper not Found!" };
+      // res.status(404).send("Helper not found");
+      // ACCEPT_FIRST_AID_HELP
+      if (user.one_signal_id) {
+        sendNotification(
+          "First Aid is coming",
+          `First Aid is on its way!`,
+          {
+            team: helper,
+          },
+          [user.one_signal_id]
+        );
+      }
+      const firstAidTeams = await User.find({
+        _id: { $ne: helper_id },
+        userType: "professional",
+      });
+      console.log(firstAidTeams);
+      let nearestFirstAidTeams = []; // PROFESSIONAL USER ID FOR SOCKET EMISSION
+      let oneSignalIdsOfFirstAidTeams = []; // One signal IDs for notifications
 
+      firstAidTeams.forEach((team) => {
+        let result = geoLib.distance({
+          p1: {
+            lat: user.location.lat,
+            lon: user.location.lng,
+          },
+          p2: {
+            lat: team.location.lat,
+            lon: team.location.lng,
+          },
+        });
+        if (result.distance < user.detection_radius * 1000) {
+          team.one_signal_id
+            ? oneSignalIdsOfFirstAidTeams.push(team.one_signal_id)
+            : console.log();
+          nearestFirstAidTeams.push(team._id);
+        }
+      });
+      // console.log(oneSignalIdsOfFirstAidTeams);
+      // Send Notification to nearestTeams (send user locaiton and name with it)
       sendNotification(
-        "First Aid is coming",
-        `First Aid is on its way!`,
+        "First Aid Help for " + user.first_name + " is on the way ",
+        `${helper.first_name} going to ${user.first_name} for First Aid!`,
         {
-          team: helper,
+          user: user,
         },
-        [user.one_signal_id]
+        oneSignalIdsOfFirstAidTeams
       );
 
-      socket.emit(events_list.ACCEPT_FIRST_AID_HELP, {
+      // Emit to all first aid teams so that they can accept or reject a request
+      nearestFirstAidTeams.forEach((id) => {
+        socket
+          .to(socketUsers[id])
+          .emit(`${events_list.ACCEPT_FIRST_AID_HELP}`, {
+            msg: `${helper.first_name} going to ${user.first_name} for First Aid!`,
+            user: user,
+            helper,
+          });
+      });
+      socket.to(socketUsers[user_id]).emit(events_list.ACCEPT_FIRST_AID_HELP, {
         msg: "First Aid Is Coming",
         team: helper,
       });
     } catch (err) {
+      console.log(err);
       socket.emit(
         events_list.ACCEPT_FIRST_AID_HELP,
         err.message ? err.message : err
@@ -234,16 +393,18 @@ const needy = (io, socket, socketUsers) => {
   socket.on(events_list.TEAM_HELP_NEEDED, async (payload) => {
     const { user_id, team_id, needHelp } = payload;
     // user_id is for the person requesting help
-
+    console.log(socketUsers[user_id]);
     try {
       const userExists = await User.findById(user_id);
       if (!userExists) {
-        return res.status(404).send({ msg: "User does not exist!" });
+        throw { msg: "User does not exist!" };
+        // res.status(404).send({ msg: "User does not exist!" });
       }
 
       const team = await Team.findById(team_id);
       if (!team) {
-        return res.status(404).send({ msg: "Team does not exist!" });
+        throw { msg: "Team does not exist" };
+        // return res.status(404).send({ msg: "Team does not exist!" });
       }
 
       const newTeamHelp = await TeamHelp.findOneAndUpdate(
@@ -315,7 +476,7 @@ const needy = (io, socket, socketUsers) => {
           });
         }
       });
-
+      // socket.to(socketUsers[user_id]).emit()
       // Send Notification to every member of team where user is member
     } catch (err) {
       console.log(err.message);
@@ -337,18 +498,22 @@ const needy = (io, socket, socketUsers) => {
       6- FILTER THE USER_IDS OF REQUESTER AND HELPER ----> DONE
       7- SEND NOTIFICATION TO ALL THE USERS IN THE ARRAY ----> INCOMPLETE
   */
-  socket.on(events_list.HELP_GOING, async (payload) => {
+  socket.on(events_list.HELP_CANCEL, async (payload) => {
+    console.log("Cancelling the help");
     const { helper_id, requester_id, team_id } = payload;
 
     try {
       const requester = await User.findById(requester_id);
-      if (!requester) return res.status(404).send("Requester does not exist");
+      if (!requester) throw { msg: "Requester does not exist" };
+      // return res.status(404).send("Requester does not exist");
 
       const helper = await User.findById(helper_id);
-      if (!helper) return res.status(404).send("Helper does not exist");
+      if (!helper) throw { msg: "Helper does not exist" };
+      // return res.status(404).send("Helper does not exist");
 
       const teamExists = await Team.findById(team_id);
-      if (!teamExists) return res.status(404).send("Team does not exist");
+      if (!teamExists) throw { msg: "Team does not exist!" };
+      // return res.status(404).send("Team does not exist");
 
       const teamHelp = await TeamHelp.findOneAndUpdate(
         {
@@ -356,8 +521,11 @@ const needy = (io, socket, socketUsers) => {
         },
         {
           $set: {
-            helper: helper_id,
-            status: "accepted",
+            helper: null,
+            status: "pending",
+          },
+          $addToSet: {
+            helpers: helper_id,
           },
         },
         {
@@ -365,7 +533,13 @@ const needy = (io, socket, socketUsers) => {
         }
       ).populate("team_selected");
 
-      // console.log(teamHelp.team_selected.team_members);
+      socket.to(socketUsers[requester_id]).emit(`${events_list.HELP_CANCEL}`, {
+        msg: helper.first_name + " Canceled the help. Finding other members",
+        user: helper,
+      });
+
+      // NOW SEND THE NOTIFICATION TO ALL THE MEMBERS IN THE TEAM
+
       const teamPhoneNumbers = teamHelp.team_selected.team_members.map((t) => {
         return t.phone;
       });
@@ -383,10 +557,94 @@ const needy = (io, socket, socketUsers) => {
         (user_id) =>
           user_id.toString() != helper_id && user_id.toString() != requester_id
       );
-
+      console.log(filteredUserIds);
       const oneSignalIds = await User.find({
         _id: { $in: filteredUserIds },
-      }).select("one_signal_id -_id -__v");
+      });
+
+      // SEND NOTIFICATION TO ALL THE USERS IN THE filteredUserIds ARRAY HERE THAT #WHO IS GOING TO HELP REQUESTER
+      sendNotification(
+        "Help Canceled",
+        `${helper.first_name} Canceled the help for ${requester.first_name}`,
+        {
+          user: helper,
+        },
+        oneSignalIds.map((user) => user.one_signal_id)
+      );
+
+      filteredUserIds.forEach((id) => {
+        socket.to(socketUsers[id]).emit(`${events_list.HELP_CANCEL}`, {
+          msg: `${helper.first_name} Canceled the help for ${requester.first_name}`,
+          user: helper,
+        });
+      });
+
+      // SEND NOTIFICATION TO THE REQUESTER THAT THE HELP IS COMING
+      sendNotification(
+        "Help Canceled",
+        `${helper.first_name} Canceled the help for You ${""}`,
+        {
+          user: helper,
+        },
+        [requester.one_signal_id]
+      );
+    } catch (err) {
+      throw { msg: err.message };
+    }
+  });
+
+  socket.on(events_list.HELP_GOING, async (payload) => {
+    const { helper_id, requester_id, team_id } = payload;
+
+    try {
+      const requester = await User.findById(requester_id);
+      if (!requester) throw { msg: "Requester does not exist" };
+      // return res.status(404).send("Requester does not exist");
+
+      const helper = await User.findById(helper_id);
+      if (!helper) throw { msg: "Helper does not exist" };
+      // return res.status(404).send("Helper does not exist");
+
+      const teamExists = await Team.findById(team_id);
+      if (!teamExists) throw { msg: "Team does not exist!" };
+      // return res.status(404).send("Team does not exist");
+
+      const teamHelp = await TeamHelp.findOneAndUpdate(
+        {
+          $and: [{ requester: requester_id }, { team_selected: team_id }],
+        },
+        {
+          $set: {
+            helper: helper_id,
+            status: "accepted",
+          },
+        },
+        {
+          new: true,
+        }
+      ).populate("team_selected");
+
+      const teamPhoneNumbers = teamHelp.team_selected.team_members.map((t) => {
+        return t.phone;
+      });
+
+      let allUsersInTeam = await User.find({
+        phone: { $in: teamPhoneNumbers },
+      }).select("_id");
+
+      // Extracring user_ids
+      const userIds = allUsersInTeam.map((user) => {
+        return user._id;
+      });
+
+      const filteredUserIds = userIds.filter(
+        (user_id) =>
+          user_id.toString() != helper_id && user_id.toString() != requester_id
+      );
+      console.log(filteredUserIds);
+      const oneSignalIds = await User.find({
+        _id: { $in: filteredUserIds },
+      });
 
       // SEND NOTIFICATION TO ALL THE USERS IN THE filteredUserIds ARRAY HERE THAT #WHO IS GOING TO HELP REQUESTER
       sendNotification(
@@ -395,12 +653,12 @@ const needy = (io, socket, socketUsers) => {
         {
           user: helper,
         },
-        oneSignalIds
+        oneSignalIds.map((user) => user.one_signal_id)
       );
 
       filteredUserIds.forEach((id) => {
-        socket.emit(`${events_list.HELP_GOING}-${id}`, {
-          msg: `${helper.first_name} is going to ${requester._id}`,
+        socket.to(socketUsers[id]).emit(`${events_list.HELP_GOING}`, {
+          msg: `${helper.first_name} is going to ${requester.first_name}`,
           user: helper,
         });
       });
@@ -415,7 +673,7 @@ const needy = (io, socket, socketUsers) => {
         [requester.one_signal_id]
       );
 
-      socket.emit(`${events_list.HELP_COMING}-${requester_id}`, {
+      socket.to(socketUsers[requester_id]).emit(`${events_list.HELP_COMING}`, {
         msg: `${helper.first_name} is coming to you`,
         user: helper,
       });
@@ -426,7 +684,6 @@ const needy = (io, socket, socketUsers) => {
 
   socket.on(events_list.CANCEL_HELP_REQUEST, async (payload) => {
     const { user_id, team_id } = payload;
-
     try {
       const cancelledRequest = await TeamHelp.findOneAndUpdate(
         {
@@ -442,7 +699,7 @@ const needy = (io, socket, socketUsers) => {
         }
       ).populate("team_selected");
 
-      socket.emit(events_list.CANCEL_HELP_REQUEST, {
+      socket.to(socketUsers[user_id]).emit(events_list.CANCEL_HELP_REQUEST, {
         msg: "Help Request Cancelled",
         request: cancelledRequest,
       });
@@ -552,7 +809,7 @@ const needy = (io, socket, socketUsers) => {
 
       console.log(anonymousTeam);
 
-      socket.emit(events_list.ANONYMOUS_GROUP, {
+      socket.to(socketUsers[user_id]).emit(events_list.ANONYMOUS_GROUP, {
         msg: "Friends in Contacts!",
         Friends: anonymousTeam,
       });
@@ -588,7 +845,7 @@ const needy = (io, socket, socketUsers) => {
       });
 
       console.log(friends);
-      socket.emit(events_list.GET_ANONYMOUS_GROUP, {
+      socket.to(socketUsers[user_id]).emit(events_list.GET_ANONYMOUS_GROUP, {
         msg: "Anonymous Team",
         Friends: friends,
       });
@@ -602,7 +859,6 @@ const needy = (io, socket, socketUsers) => {
 
   socket.on(events_list.SET_VEHICLE_LOCATION, async (payload) => {
     const { user_id, vehicle_location } = payload;
-
     try {
       const vehicleLocation = await Vehicle.findOneAndUpdate(
         {
@@ -619,13 +875,31 @@ const needy = (io, socket, socketUsers) => {
         }
       ).populate("user");
 
-      socket.emit(events_list.SET_VEHICLE_LOCATION, {
+      socket.to(socketUsers[user_id]).emit(events_list.SET_VEHICLE_LOCATION, {
         msg: "Vehicle Location Set",
         vehicle: vehicleLocation,
       });
     } catch (err) {
       socket.emit(
         events_list.SET_VEHICLE_LOCATION,
+        err.message ? err.message : err
+      );
+    }
+  });
+
+  socket.on(events_list.GET_VEHICLE_LOCATION, async (payload) => {
+    const { user_id } = payload;
+    try {
+      const vehicleLocation = await Vehicle.findOne({
+        user: user_id,
+      }).populate("user");
+      socket.to(socketUsers[user_id]).emit(events_list.GET_VEHICLE_LOCATION, {
+        msg: "Vehicle Location",
+        vehicle: vehicleLocation,
+      });
+    } catch (err) {
+      socket.emit(
+        events_list.GET_VEHICLE_LOCATION,
         err.message ? err.message : err
       );
     }

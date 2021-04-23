@@ -8,6 +8,7 @@ const client = new OneSignal.Client(
 
 module.exports = {
   sendNotification: async (heading, message, data, participantsIds) => {
+    console.log(participantsIds);
     const notification = {
       headings: { en: heading },
       contents: {

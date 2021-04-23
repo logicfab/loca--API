@@ -11,6 +11,7 @@ const TeamHelpSchema = mongoose.Schema(
       type: mongoose.Types.ObjectId,
       ref: "user",
     },
+    helpers: [{ type: mongoose.Types.ObjectId, ref: "user", default: [] }],
     team_selected: {
       type: mongoose.Types.ObjectId,
       ref: "team",
