@@ -3,14 +3,10 @@ const { updateLocation, needy, teamMembers } = require("./user");
 
 let users = {};
 const socketioConnect = (io) => {
-  console.log("Connection");
   io.on("connection", (socket) => {
-    console.log("user connected", socket.id);
-    console.log(socket.user_id);
-    socket.on("ESTABLISH_CONNECTION", ({ user_id }) => {
-      users[user_id] = socket.id;
-      console.log("users =", users);
-    });
+    const user = socket.handshake.query.user_id;
+    users[user] = socket.id;
+    console.log("USERS==>", users);
 
     //teams
     teamMembers(io, socket, users);
@@ -27,11 +23,13 @@ const socketioConnect = (io) => {
     socket.on("DISCONNECT", () => {
       let removed_user_id = "";
       for (var key in users) {
+        console.log(key);
         if (users[key] == socket.id) {
           delete users[key];
           removed_user_id = key;
         }
       }
+      console.log("User ", removed_user_id, " DISCONNECTED!");
     });
   });
 };

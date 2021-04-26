@@ -31,6 +31,7 @@ const TeamHelpSchema = mongoose.Schema(
       type: Date,
       default: Date.now(),
     },
+    cancelled_by: [{ type: mongoose.Types.ObjectId, ref: "user", default: [] }],
   },
   {
     timestamps: true,
