@@ -528,7 +528,7 @@ const needy = (io, socket, socketUsers) => {
         if (socketUsers[id]) {
           console.log(id, ":", socketUsers[id]);
           io.to(socketUsers[id]).emit(events_list.TEAM_HELP_NEEDED, {
-            msg: "Notification sent to friends in group",
+            msg: `${userExists.first_name} needs you!`,
             user: userExists,
             notificationType: "TEAM_HELP_NEEDED",
             team_id: team_id,
