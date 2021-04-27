@@ -43,13 +43,13 @@ const teamMembers = (io, socket, socketUsers) => {
       team_by: user_id,
     }).populate({
       model: "user",
-
       path: "team_by",
     });
 
-    socket
-      .to(socketUsers[user_id])
-      .emit(events_list.GET_TEAM_MEMBERS, { teams });
+    socket.to(socketUsers[user_id]).emit(events_list.GET_TEAM_MEMBERS, {
+      teams,
+      notificationType: events_list.GET_TEAM_MEMBERS,
+    });
   });
 };
 
@@ -109,9 +109,10 @@ const updateLocation = (io, socket, socketUsers) => {
       //   });
       // });
       // console.log("error");
-      socket
-        .to(socketUsers[user_id])
-        .emit(events_list.UPDATE_LOCATION, response);
+      socket.to(socketUsers[user_id]).emit(events_list.UPDATE_LOCATION, {
+        response,
+        notificationType: events_list.UPDATE_LOCATION,
+      });
     } catch (err) {
       socket.emit(events_list.UPDATE_LOCATION, err.message ? err.message : err);
     }
@@ -183,15 +184,18 @@ const needy = (io, socket, socketUsers) => {
           .to(socketUsers[id])
           .emit(events_list.CANCEL_FIRST_AID_HELP_TEAM, {
             msg: `${helper.first_name} cancelled First Aid for ${user.first_name}!`,
-            user: user,
-            helper: helper,
+            notificationType: events_list.CANCEL_FIRST_AID_HELP_TEAM,
+            user: helper_id,
+            request: user_id,
           });
       });
       socket
         .to(socketUsers[user_id])
         .emit(events_list.CANCEL_FIRST_AID_HELP_TEAM, {
           msg: `${helper.first_name} cancelled First Aid for You!`,
-          needy,
+          notificationType: events_list.CANCEL_FIRST_AID_HELP_TEAM,
+          user: helper_id,
+          request: user_id,
         });
     } catch (err) {
       throw err;
@@ -256,12 +260,17 @@ const needy = (io, socket, socketUsers) => {
           .to(socketUsers[id])
           .emit(events_list.CANCEL_FIRST_AID_HELP_REQUEST, {
             msg: `${user.first_name} cancelled First Aid!`,
-            user: user,
+            requester: user_id,
+            notificationType: events_list.CANCEL_FIRST_AID_HELP_REQUEST,
           });
       });
       socket
         .to(socketUsers[user_id])
-        .emit(events_list.CANCEL_FIRST_AID_HELP_REQUEST, { needy });
+        .emit(events_list.CANCEL_FIRST_AID_HELP_REQUEST, {
+          needy,
+          requester: user_id,
+          notificationType: events_list.CANCEL_FIRST_AID_HELP_REQUEST,
+        });
     } catch (err) {
       console.log(err);
       throw err;
@@ -327,7 +336,8 @@ const needy = (io, socket, socketUsers) => {
           .to(socketUsers[id])
           .emit(`${events_list.FIRST_AID_HELP_NEEDED}`, {
             msg: `${user.first_name} needs First Aid!`,
-            user: user,
+            requester: user_id,
+            notificationType: events_list.FIRST_AID_HELP_NEEDED,
           });
       });
     } catch (err) {
@@ -418,13 +428,15 @@ const needy = (io, socket, socketUsers) => {
           .to(socketUsers[id])
           .emit(`${events_list.ACCEPT_FIRST_AID_HELP}`, {
             msg: `${helper.first_name} going to ${user.first_name} for First Aid!`,
-            user: user,
-            helper,
+            user: helper_id,
+            requester: user_id,
           });
       });
       socket.to(socketUsers[user_id]).emit(events_list.ACCEPT_FIRST_AID_HELP, {
         msg: "First Aid Is Coming",
-        team: helper,
+        user: helper_id,
+        requester: user_id,
+        notificationType: events_list.ACCEPT_FIRST_AID_HELP,
       });
     } catch (err) {
       console.log(err);
@@ -529,9 +541,10 @@ const needy = (io, socket, socketUsers) => {
           console.log(id, ":", socketUsers[id]);
           io.to(socketUsers[id]).emit(events_list.TEAM_HELP_NEEDED, {
             msg: `${userExists.first_name} needs you!`,
-            user: userExists,
+            requester: userExists,
             notificationType: "TEAM_HELP_NEEDED",
             team_id: team_id,
+            user: id,
           });
         }
       });
@@ -615,7 +628,10 @@ const needy = (io, socket, socketUsers) => {
         filteredUserIds.forEach(({ _id }) => {
           socket.to(socketUsers[_id]).emit(events_list.HELP_COMPLETE, {
             msg: `${helper.first_name} completed the help for ${requester.first_name}`,
-            user: helper,
+            user: helper_id,
+            // requester_id, team_id, helper_id
+            notificationType: events_list.HELP_COMPLETE,
+            requester: requester_id,
           });
         });
 
@@ -631,8 +647,9 @@ const needy = (io, socket, socketUsers) => {
 
         socket.to(socketUsers[requester_id]).emit(events_list.HELP_COMPLETE, {
           msg: "Help Completed",
-          requester,
-          helper,
+          requester: requester_id,
+          notificationType: events_list.HELP_COMPLETE,
+          user: helper_id,
         });
       } catch (err) {
         console.log(err);
@@ -679,6 +696,8 @@ const needy = (io, socket, socketUsers) => {
       socket.to(socketUsers[requester_id]).emit(events_list.HELP_CANCEL, {
         msg: helper.first_name + " Canceled the help. Finding other members",
         user: helper,
+        notificationType: events_list.HELP_CANCEL,
+        requester: requester_id,
       });
 
       // NOW SEND THE NOTIFICATION TO ALL THE MEMBERS IN THE TEAM
@@ -706,6 +725,8 @@ const needy = (io, socket, socketUsers) => {
         socket.to(socketUsers[_id]).emit(events_list.HELP_CANCEL, {
           msg: `${helper.first_name} Canceled the help for ${requester.first_name}`,
           user: helper,
+          notificationType: events_list.HELP_CANCEL,
+          requester: requester_id,
         });
       });
 
@@ -724,6 +745,7 @@ const needy = (io, socket, socketUsers) => {
   });
 
   socket.on(events_list.HELP_GOING, async (payload) => {
+    console.log("payload=>", payload);
     const { helper_id, requester_id, team_id } = payload;
 
     try {
@@ -751,10 +773,11 @@ const needy = (io, socket, socketUsers) => {
         },
         {
           new: true,
+          upsert: true,
         }
       ).populate("team_selected");
       // console.log(teamHelp.team_selected.team_members, "<===members");
-
+      console.log(teamHelp);
       const filteredUserIds = teamHelp.team_selected.team_members.filter(
         ({ _id }) =>
           _id.toString() != helper_id && _id.toString() != requester_id
@@ -778,22 +801,26 @@ const needy = (io, socket, socketUsers) => {
         socket.to(socketUsers[_id]).emit(events_list.HELP_GOING, {
           msg: `${helper.first_name} is going to ${requester.first_name}`,
           user: helper,
+          notificationType: events_list.HELP_GOING,
+          requester: requester_id,
         });
       });
       // console.log(filteredUserIds);
       // SEND NOTIFICATION TO THE REQUESTER THAT THE HELP IS COMING
       sendNotification(
         "Help Coming",
-        `${helper.first_name} is going to ${requester._id}`,
+        `${helper.first_name} is coming to you`,
         {
           user: helper,
         },
         [requester.one_signal_id]
       );
-
-      socket.to(socketUsers[requester_id]).emit(events_list.HELP_COMING, {
+      console.log("REQUESTER ID==>>> ", socketUsers[requester_id]);
+      socket.to(socketUsers[requester_id]).emit(events_list.HELP_GOING, {
         msg: `${helper.first_name} is coming to you`,
         user: helper,
+        notificationType: events_list.HELP_GOING,
+        requester: requester_id,
       });
     } catch (err) {
       console.log(err);
@@ -824,6 +851,8 @@ const needy = (io, socket, socketUsers) => {
       socket.to(socketUsers[user_id]).emit(events_list.CANCEL_HELP_REQUEST, {
         msg: "Help Request Cancelled",
         request: cancelledRequest,
+        notificationType: events_list.CANCEL_HELP_REQUEST,
+        requester: user_id,
       });
       // console.log("MEMBERS:<=== ", cancelledRequest.team_selected.team_members.map);
       const filteredUserIds = cancelledRequest.team_selected.team_members.filter(
@@ -846,10 +875,10 @@ const needy = (io, socket, socketUsers) => {
 
       filteredUserIds.forEach(({ _id }) => {
         // console.log("ID =>", _id, "---", socketUsers[_id]);
-        socket.to(socketUsers[_id]).emit(events_list.HELP_GOING, {
+        socket.to(socketUsers[_id]).emit(events_list.CANCEL_HELP_REQUEST, {
           msg: `${requester.first_name} cancelled the help request`,
-          user: requester,
-          cancelledRequest,
+          notificationType: events_list.CANCEL_HELP_REQUEST,
+          requester: user_id,
         });
       });
     } catch (err) {
@@ -890,6 +919,8 @@ const needy = (io, socket, socketUsers) => {
       socket.emit(events_list.FIND_FRIENDS, {
         msg: "Friends in the group!",
         Friends: filteredUsers,
+        notificationType: events_list.FIND_FRIENDS,
+        requester: user_id,
       });
     } catch (err) {
       socket.emit(events_list.FIND_FRIENDS, err.message ? err.message : err);
@@ -932,6 +963,8 @@ const needy = (io, socket, socketUsers) => {
       socket.emit(events_list.UPLOAD_CONTACTS, {
         msg: "Friends in Contacts!",
         Friends: friends,
+        notificationType: events_list.UPLOAD_CONTACTS,
+        // requester: user_id,
       });
     } catch (err) {
       socket.emit(events_list.UPLOAD_CONTACTS, err.message ? err.message : err);
@@ -962,6 +995,8 @@ const needy = (io, socket, socketUsers) => {
       socket.to(socketUsers[user_id]).emit(events_list.ANONYMOUS_GROUP, {
         msg: "Friends in Contacts!",
         Friends: anonymousTeam,
+        notificationType: events_list.ANONYMOUS_GROUP,
+        requester: user_id,
       });
     } catch (err) {
       socket.emit(events_list.ANONYMOUS_GROUP, err.message ? err.message : err);
@@ -983,6 +1018,7 @@ const needy = (io, socket, socketUsers) => {
         socket.emit(events_list.GET_ANONYMOUS_GROUP, {
           msg: "Anonymous Team does not exist",
           Friends: [],
+          notificationType: "GET_ANONYMOUS_GROUP",
         });
       }
 
@@ -998,6 +1034,8 @@ const needy = (io, socket, socketUsers) => {
       socket.to(socketUsers[user_id]).emit(events_list.GET_ANONYMOUS_GROUP, {
         msg: "Anonymous Team",
         Friends: friends,
+        notificationType: "GET_ANONYMOUS_GROUP",
+        requester: user_id,
       });
     } catch (err) {
       socket.emit(
@@ -1029,6 +1067,7 @@ const needy = (io, socket, socketUsers) => {
       socket.emit(events_list.SET_VEHICLE_LOCATION, {
         msg: "Vehicle Location Set",
         vehicle: vehicleLocation,
+        requester: user_id,
       });
     } catch (err) {
       socket.emit(
@@ -1047,6 +1086,8 @@ const needy = (io, socket, socketUsers) => {
       socket.emit(events_list.GET_VEHICLE_LOCATION, {
         msg: "Vehicle Location",
         vehicle: vehicleLocation,
+        notificationType: events_list.GET_VEHICLE_LOCATION,
+        requester: user_id,
       });
     } catch (err) {
       socket.emit(

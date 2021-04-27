@@ -4,10 +4,14 @@ const { updateLocation, needy, teamMembers } = require("./user");
 let users = {};
 const socketioConnect = (io) => {
   io.on("connection", (socket) => {
-    const user = socket.handshake.query.user_id;
-    users[user] = socket.id;
-    console.log("USERS==>", users);
+    // const user = socket.handshake.query.user_id;
+    // users[user] = socket.id;
+    // console.log("USERS==>", users);
 
+    socket.on("ESTABLISH_CONNECTION", ({ user_id }) => {
+      users[user_id] = socket.id;
+      console.log("users =>", users);
+    });
     //teams
     teamMembers(io, socket, users);
 
