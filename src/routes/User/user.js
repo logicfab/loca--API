@@ -2,7 +2,7 @@ const e = require("express");
 const express = require("express");
 const User = require("../../models/User");
 const router = express.Router();
-
+const {Vehicle} = require('../../models/vehicle');
 // route  -> /user/GetUsersById/:id
 // desc   -> GET USER BY USER ID
 // Method -> GET
@@ -165,5 +165,18 @@ router.put("/setOnesignalId/:id", async (req, res) => {
     res.status(500).send(err.message ? { msg: err.message } : err);
   }
 });
+
+router.post('/get-vehicle-location' , async (req,res)=>{
+  const { user_id } = req.body;
+  try {
+    const vehicleLocation = await Vehicle.findOne({
+      user: user_id,
+    }).populate("user");
+
+    res.send({vehicleLocation})
+  }catch (e) {
+    res.status(400).send({message:"Not Found"})
+  }
+})
 
 module.exports = router;

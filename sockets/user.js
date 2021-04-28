@@ -175,7 +175,8 @@ const needy = (io, socket, socketUsers) => {
         helper.first_name + "Cancelled first aid help for " + user.first_name,
         `${helper.first_name} cancelled First Aid help for ${user.first_name}`,
         {
-          user: user,
+          requester: user,
+          user:helper_id,
           notificationType: events_list.CANCEL_FIRST_AID_HELP_TEAM,
         },
         oneSignalIdsOfFirstAidTeams
@@ -189,8 +190,8 @@ const needy = (io, socket, socketUsers) => {
           .emit(events_list.CANCEL_FIRST_AID_HELP_TEAM, {
             message: `${helper.first_name} cancelled First Aid for ${user.first_name}!`,
             notificationType: events_list.CANCEL_FIRST_AID_HELP_TEAM,
-            user: helper_id,
-            request: user_id,
+            requester: user,
+            user:helper_id,
           });
       });
       socket
@@ -198,8 +199,8 @@ const needy = (io, socket, socketUsers) => {
         .emit(events_list.CANCEL_FIRST_AID_HELP_TEAM, {
           message: `${helper.first_name} cancelled First Aid for You!`,
           notificationType: events_list.CANCEL_FIRST_AID_HELP_TEAM,
-          user: helper_id,
-          request: user_id,
+          requester: user,
+          user:helper_id,
         });
     } catch (err) {
       // throw err;
@@ -254,7 +255,7 @@ const needy = (io, socket, socketUsers) => {
         "First Aid Help Cancelled",
         `${user.first_name} cancelled First Aid!`,
         {
-          user: user,
+          requester: user,
           notificationType: events_list.CANCEL_FIRST_AID_HELP_REQUEST,
         },
         oneSignalIdsOfFirstAidTeams
@@ -267,7 +268,7 @@ const needy = (io, socket, socketUsers) => {
           .to(socketUsers[id])
           .emit(events_list.CANCEL_FIRST_AID_HELP_REQUEST, {
             message: `${user.first_name} cancelled First Aid!`,
-            requester: user_id,
+            requester: user,
             notificationType: events_list.CANCEL_FIRST_AID_HELP_REQUEST,
           });
       });
@@ -275,7 +276,7 @@ const needy = (io, socket, socketUsers) => {
         .to(socketUsers[user_id])
         .emit(events_list.CANCEL_FIRST_AID_HELP_REQUEST, {
           needy,
-          requester: user_id,
+          requester: user,
           notificationType: events_list.CANCEL_FIRST_AID_HELP_REQUEST,
         });
     } catch (err) {
@@ -333,7 +334,7 @@ const needy = (io, socket, socketUsers) => {
         "First Aid Help Required",
         `${user.first_name} needs First Aid!`,
         {
-          user: user,
+          requester: user,
           notificationType: events_list.FIRST_AID_HELP_NEEDED,
         },
         oneSignalIdsOfFirstAidTeams
@@ -345,7 +346,8 @@ const needy = (io, socket, socketUsers) => {
           .to(socketUsers[id])
           .emit(`${events_list.FIRST_AID_HELP_NEEDED}`, {
             message: `${user.first_name} needs First Aid!`,
-            requester: user_id,
+            requester: user,
+            user:id,
             notificationType: events_list.FIRST_AID_HELP_NEEDED,
           });
       });
@@ -542,7 +544,8 @@ const needy = (io, socket, socketUsers) => {
         "Help Needed",
         `${userExists.first_name} needs you!`,
         {
-          requester: user_id,
+          requester: userExists,
+          message: `${userExists.first_name} needs you!`,
           notificationType: events_list.TEAM_HELP_NEEDED,
           team_id: team_id,
         },
@@ -556,7 +559,7 @@ const needy = (io, socket, socketUsers) => {
           console.log(id, ":", socketUsers[id]);
           io.to(socketUsers[id]).emit(events_list.TEAM_HELP_NEEDED, {
             message: `${userExists.first_name} needs you!`,
-            requester: user_id,
+            requester: userExists,
             notificationType: "TEAM_HELP_NEEDED",
             team_id: team_id,
             user: id,
@@ -714,10 +717,10 @@ const needy = (io, socket, socketUsers) => {
 
       socket.to(socketUsers[requester_id]).emit(events_list.HELP_CANCEL, {
         message:
-          helper.first_name + " Canceled the help. Finding other members",
-        user: helper,
+          helper.first_name + " Canceled the help. Find other members",
         notificationType: events_list.HELP_CANCEL,
-        requester: requester_id,
+        user: requester_id,
+        requester:helper,
       });
 
       // NOW SEND THE NOTIFICATION TO ALL THE MEMBERS IN THE TEAM
@@ -736,7 +739,9 @@ const needy = (io, socket, socketUsers) => {
         "Help Canceled",
         `${helper.first_name} Canceled the help for ${requester.first_name}`,
         {
-          user: helper_id,
+          message:`${helper.first_name} Canceled the help for ${requester.first_name}`,
+          user: requester_id,
+          requester:helper,
           notificationType: events_list.HELP_CANCEL,
         },
         oneSignalIds.map((user) => user.one_signal_id)
@@ -745,9 +750,9 @@ const needy = (io, socket, socketUsers) => {
       filteredUserIds.forEach(({ _id }) => {
         socket.to(socketUsers[_id]).emit(events_list.HELP_CANCEL, {
           message: `${helper.first_name} Canceled the help for ${requester.first_name}`,
-          user: helper_id,
           notificationType: events_list.HELP_CANCEL,
-          requester: requester_id,
+          user: requester_id,
+          requester:helper,
         });
       });
 
@@ -756,8 +761,9 @@ const needy = (io, socket, socketUsers) => {
         "Help Canceled",
         `${helper.first_name} Canceled the help for You ${""}`,
         {
-          user: helper_id,
-          requester: requester_id,
+          message:`${helper.first_name} Canceled the help for You ${""}`,
+          user: requester_id,
+          requester:helper,
           notificationType: events_list.HELP_CANCEL,
         },
         [requester.one_signal_id]
@@ -807,29 +813,38 @@ const needy = (io, socket, socketUsers) => {
         ({ _id }) =>
           _id.toString() != helper_id && _id.toString() != requester_id
       );
+      // console.log(filteredUserIds , "--> filt");
       console.log("filteredUserIds=>", filteredUserIds);
       const oneSignalIds = await User.find({
         _id: { $in: filteredUserIds },
       });
 
       // SEND NOTIFICATION TO ALL THE USERS IN THE filteredUserIds ARRAY HERE THAT #WHO IS GOING TO HELP REQUESTER
+
+      const usersOneSignalIds = oneSignalIds.filter(a=>a._id!==helper_id).map(user=> user.one_signal_id);
       sendNotification(
         "Help Going",
-        `${helper.first_name} is going to ${requester._id}`,
+        `${helper.first_name} is going to ${requester.first_name}`,
         {
-          user: helper_id,
+          user: requester_id,
           notificationType: events_list.HELP_GOING,
-          requester: requester_id,
+          requester: helper,
+          restFriends:true,
+          team_id,
+          message:`${helper.first_name} is going to ${requester._id}`,
         },
-        oneSignalIds.map((user) => user.one_signal_id)
+        usersOneSignalIds
       );
+      console.log("OTHER",usersOneSignalIds);
 
       filteredUserIds.forEach(({ _id }) => {
         socket.to(socketUsers[_id]).emit(events_list.HELP_GOING, {
           message: `${helper.first_name} is going to ${requester.first_name}`,
-          user: helper,
+          user: requester_id,
+          restFriends:true,
+          team_id,
           notificationType: events_list.HELP_GOING,
-          requester: requester_id,
+          requester: helper,
         });
       });
       // console.log(filteredUserIds);
@@ -838,18 +853,21 @@ const needy = (io, socket, socketUsers) => {
         "Help Coming",
         `${helper.first_name} is coming to you`,
         {
-          user: helper_id,
+          user: requester_id,
           notificationType: events_list.HELP_GOING,
-          requester: requester_id,
+          requester:helper,
+          team_id,
+          message: `${helper.first_name} is coming to you`,
         },
         [requester.one_signal_id]
       );
       console.log("REQUESTER ID==>>> ", socketUsers[requester_id]);
       socket.to(socketUsers[requester_id]).emit(events_list.HELP_GOING, {
         message: `${helper.first_name} is coming to you`,
-        user: helper_id,
+        user: requester_id,
         notificationType: events_list.HELP_GOING,
-        requester: requester_id,
+        team_id,
+        requester:helper
       });
     } catch (err) {
       console.log(err);
@@ -859,7 +877,7 @@ const needy = (io, socket, socketUsers) => {
   });
 
   socket.on(events_list.CANCEL_HELP_REQUEST, async (payload) => {
-    // console.log("PAYLOAD =>", payload);
+    console.log("PAYLOAD =>", payload);
     const { user_id, team_id } = payload;
     try {
       const requester = await User.findById(user_id);
@@ -876,40 +894,72 @@ const needy = (io, socket, socketUsers) => {
         {
           new: true,
         }
-      ).populate("team_selected");
+      ).populate("team_selected").exec();
 
       socket.to(socketUsers[user_id]).emit(events_list.CANCEL_HELP_REQUEST, {
         message: "Help Request Cancelled",
         request: cancelledRequest,
         notificationType: events_list.CANCEL_HELP_REQUEST,
-        requester: user_id,
-      });
-      // console.log("MEMBERS:<=== ", cancelledRequest.team_selected.team_members.map);
-      const filteredUserIds = cancelledRequest.team_selected.team_members.filter(
-        ({ _id }) => _id.toString() != user_id
-      );
-      // console.log("filteredUserIds=>", filteredUserIds);
-      const oneSignalIds = await User.find({
-        _id: { $in: filteredUserIds },
+        requester: requester,
+        team_id
       });
 
+      // console.log(cancelledRequest.team_selected.team_members);
+      //
+      // const filteredPhoneNumbers = cancelledRequest.team_selected.team_members.map(item => {
+      //   return item.phone;
+      // })
+      // console.log(filteredPhoneNumbers , "--> filt");
+      // //
+      // // const filters = filteredUserIds.map(user=> return )
+      //
+      // // console.log("filteredUserIds=>", filteredUserIds);
+      // const oneSignalIds = await User.find({
+      //   phone: { $in: filteredPhoneNumbers}
+      // }).select("-one_signal_id");
+      //
+      // // oneSignalIds.map
+      // console.log(oneSignalIds);
+      // // SEND NOTIFICATION TO ALL THE USERS IN THE filteredUserIds ARRAY HERE THAT #WHO IS GOING TO HELP REQUESTER
+      //
+      // const usersOneSignalIds = oneSignalIds.filter(a=>a._id!==user_id).map(user=> user.one_signal_id);
+
       // SEND NOTIFICATION TO ALL THE USERS IN THE filteredUserIds ARRAY HERE THAT #WHO IS GOING TO HELP REQUESTER
+
+      const filteredUserIds = cancelledRequest.team_selected.team_members.filter(
+        ({ _id }) =>
+          _id.toString() != user_id
+      );
+      // console.log(filteredUserIds , "--> filt");
+      // console.log("filteredUserIds=>", filteredUserIds);
+      const oneSignalIds = await User.find({
+        phone: { $in: filteredUserIds.map(user => user.phone) },
+      });
+      // console.log(oneSignalIds, "----ONE ");
+      // SEND NOTIFICATION TO ALL THE USERS IN THE filteredUserIds ARRAY HERE THAT #WHO IS GOING TO HELP REQUESTER
+      // console.log(oneSignalIds.filter(a=>a._id!=user_id).map(user=>user._id));
+      // console.log(oneSignalIds.map(user=>user._id));
+      const usersOneSignalIds = oneSignalIds.filter(a=>a._id!=user_id).map(user=> user.one_signal_id);
+
       sendNotification(
         "Help Request cancelled",
         `${requester.first_name} cancelled the help request`,
         {
-          user: requester,
+           requester,
+message:          `${requester.first_name} cancelled the help request`,
           notificationType: events_list.CANCEL_HELP_REQUEST,
+          team_id
         },
-        oneSignalIds.map((user) => user.one_signal_id)
+        usersOneSignalIds
       );
 
-      filteredUserIds.forEach(({ _id }) => {
+      oneSignalIds.forEach(({ _id }) => {
         // console.log("ID =>", _id, "---", socketUsers[_id]);
         socket.to(socketUsers[_id]).emit(events_list.CANCEL_HELP_REQUEST, {
           message: `${requester.first_name} cancelled the help request`,
           notificationType: events_list.CANCEL_HELP_REQUEST,
-          requester: user_id,
+          requester,
+          team_id
         });
       });
     } catch (err) {
@@ -927,7 +977,7 @@ const needy = (io, socket, socketUsers) => {
 
     try {
       const team = await Team.findById(team_id);
-
+const requester = await  User.findById(user_id);
       const teamPhoneNumbers = team.team_members.map((t) => {
         return t.phone;
       });
@@ -952,7 +1002,7 @@ const needy = (io, socket, socketUsers) => {
         message: "Friends in the group!",
         Friends: filteredUsers,
         notificationType: events_list.FIND_FRIENDS,
-        requester: user_id,
+        requester,
       });
     } catch (err) {
       console.log(err);
@@ -1089,6 +1139,7 @@ const needy = (io, socket, socketUsers) => {
     const { user_id, vehicle_location } = payload;
     console.log(payload);
     try {
+      // const
       const vehicleLocation = await Vehicle.findOneAndUpdate(
         {
           user: user_id,
@@ -1107,7 +1158,7 @@ const needy = (io, socket, socketUsers) => {
       socket.emit(events_list.SET_VEHICLE_LOCATION, {
         message: "Vehicle Location Set",
         vehicle: vehicleLocation,
-        requester: user_id,
+        requester: user,
       });
     } catch (err) {
       console.log(err);
