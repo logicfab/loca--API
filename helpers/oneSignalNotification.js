@@ -7,8 +7,8 @@ const client = new OneSignal.Client(
 );
 
 module.exports = {
-  sendNotification: async (heading, message, data, participantsIds ,users ) => {
-    console.log(participantsIds);
+  sendNotification: async (heading, message, data, participantsIds, users) => {
+    // console.log(participantsIds);
     const notification = {
       headings: { en: heading },
       contents: {
@@ -21,15 +21,16 @@ module.exports = {
       include_player_ids: participantsIds,
     };
     // console.log(data);
-    console.log("sending notification");
+    // console.log("sending notification");
     ///
     try {
       const response = await client.createNotification(notification);
       // console.log(response.body.id);
-      console.log("notification sent");
+      // console.log("notification sent");
     } catch (e) {
       if (e instanceof OneSignal.HTTPError) {
         // When status code of HTTP response is not 2xx, HTTPError is thrown.
+        console.log("ERROR IN SENDING THE NOTIFICATION----> ", e);
         console.log(e.statusCode);
         console.log(e.body);
       }

@@ -9,13 +9,15 @@ const socketioConnect = (io) => {
     if (user) {
       users[user] = socket.id;
     }
-    console.log("USERS==>", users);
     socket.on("ESTABLISH_CONNECTION", ({ user_id }) => {
-      console.log("ESTABLISHING CONNECTION------->");
+      // console.log("ESTABLISHING CONNECTION------->");
       users[user_id] = socket.id;
-      console.log("USERS==>", users);
-      console.log("<------Connection Established");
+      console.log("==>\n", users, "\n", "<===");
+      // console.log("USERS==>", users);
+      // console.log("<------Connection Established");
     });
+    console.log("==>\n", users, "\n", "<===");
+
     //teams
     teamMembers(io, socket, users);
 
@@ -31,13 +33,25 @@ const socketioConnect = (io) => {
     socket.on("DISCONNECT", () => {
       let removed_user_id = "";
       for (var key in users) {
-        console.log(key);
+        // console.log(key);
         if (users[key] == socket.id) {
           delete users[key];
           removed_user_id = key;
         }
       }
-      console.log("User ", removed_user_id, " DISCONNECTED!");
+    });
+
+    socket.on("disconnect", () => {
+      let removed_user_id = "";
+      for (var key in users) {
+        // console.log(key);
+        if (users[key] == socket.id) {
+          delete users[key];
+          // removed_user_id = key;
+        }
+      }
+      console.log("==>\n", users, "\n", "<===");
+      // console.log("User ", removed_user_id, " DISCONNECTED!");
     });
   });
 };
