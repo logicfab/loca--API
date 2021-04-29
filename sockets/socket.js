@@ -5,17 +5,18 @@ let users = {};
 const socketioConnect = (io) => {
   io.on("connection", (socket) => {
     const user = socket.handshake.query.user_id;
-
     if (user) {
       users[user] = socket.id;
     }
     socket.on("ESTABLISH_CONNECTION", ({ user_id }) => {
       // console.log("ESTABLISHING CONNECTION------->");
       users[user_id] = socket.id;
+      console.log(new Date().toString());
       console.log("==>\n", users, "\n", "<===");
       // console.log("USERS==>", users);
       // console.log("<------Connection Established");
     });
+    console.log(new Date().toString());
     console.log("==>\n", users, "\n", "<===");
 
     //teams
@@ -50,7 +51,9 @@ const socketioConnect = (io) => {
           // removed_user_id = key;
         }
       }
+      console.log(new Date().toString());
       console.log("==>\n", users, "\n", "<===");
+
       // console.log("User ", removed_user_id, " DISCONNECTED!");
     });
   });
