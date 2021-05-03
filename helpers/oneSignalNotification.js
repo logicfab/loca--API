@@ -1,3 +1,4 @@
+const e = require("express");
 const OneSignal = require("onesignal-node");
 
 const client = new OneSignal.Client(
@@ -6,8 +7,21 @@ const client = new OneSignal.Client(
   "ZWQ3NTU5ZWItYmI3ZC00MjVhLWE0NDQtZjBkNWViN2MyNjM1"
 );
 
+const first_aid_cleint = new OneSignal.Client(
+  "0c89b38e-7fa9-42fc-902d-0fc5328fff69",
+  "NzllYzg0MmUtNDg0OC00OTI1LThkN2YtMzhmMmNlNmIxODVm",
+  "ZWQ3NTU5ZWItYmI3ZC00MjVhLWE0NDQtZjBkNWViN2MyNjM1"
+);
+
 module.exports = {
-  sendNotification: async (heading, message, data, participantsIds, users) => {
+  sendNotification: async (
+    heading,
+    message,
+    data,
+    participantsIds,
+    users,
+    type
+  ) => {
     // console.log(participantsIds);
     const notification = {
       headings: { en: heading },
@@ -24,7 +38,16 @@ module.exports = {
     // console.log("sending notification");
     ///
     try {
-      const response = await client.createNotification(notification);
+      // Sending to USER
+      if (type === 1) {
+        // Sending to USER
+        const response = await client.createNotification(notification);
+      } else if (type === 2) {
+        // Sending to FIRST_AID_TEAM
+        const response1 = await first_aid_cleint.createNotification(
+          notification
+        );
+      }
       // console.log(response.body.id);
       // console.log("notification sent");
     } catch (e) {

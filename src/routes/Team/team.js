@@ -124,7 +124,15 @@ router.post("/removemember", async (req, res) => {
 
 router.patch("/updateTeam", async (req, res) => {
   try {
+    console.log(req.body);
     const { team_id, team_members } = req.body;
+    let updatedSet = {};
+    if (req.body.team_name) {
+      updatedSet.team_name = req.body.team_name;
+    }
+    if (req.body.team_members) {
+      updatedSet.team_members = req.body.team_members;
+    }
 
     const teamFound = await Team.findById(team_id);
 
@@ -132,22 +140,26 @@ router.patch("/updateTeam", async (req, res) => {
       return res.status(400).send({ msg: "Team not available!" });
     }
 
+    await Team.findByIdAndUpdate(team_id, { $unset: { team_members: "" } });
+
     const response = await Team.findByIdAndUpdate(
       team_id,
       {
-        team_members: team_members,
+        $set: { updatedSet },
+        $push: { team_members: req.body.team_members },
       },
       {
         new: true,
       }
     );
-
+    console.log("(response)", response.team_members.length);
     if (!response) {
       return res.status(400).send({ msg: "Team not added!" });
     }
 
     res.send(response);
   } catch (err) {
+    console.log(err);
     res.send(err.message ? { msg: err.msg } : err);
   }
 });

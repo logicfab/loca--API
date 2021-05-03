@@ -33,6 +33,7 @@ let events_list = {
   GET_ANONYMOUS_GROUP: "GET_ANONYMOUS_GROUP",
   SET_VEHICLE_LOCATION: "SET_VEHICLE_LOCATION",
   GET_VEHICLE_LOCATION: "GET_VEHICLE_LOCATION",
+  GOTO_FIRST_AID: "GOTO_FIRST_AID",
   ERROR: "ERROR",
 };
 
@@ -122,6 +123,64 @@ const updateLocation = (io, socket, socketUsers) => {
 };
 
 const needy = (io, socket, socketUsers) => {
+  socket.on(events_list.GOTO_FIRST_AID, async (payload) => {
+    try {
+      const { user_id } = payload;
+      const user = await User.findById(user_id);
+
+      if (!user) throw { message: "User does not exist" };
+
+      const needy = await Needy.findOneAndUpdate(
+        { user: user_id, status: "unresolved" },
+        {
+          $unset: {
+            assigned_team: 1,
+          },
+        },
+        { new: true, upsert: true }
+      );
+
+      if (!needy) throw { message: "An error occurred" };
+      // return res.status(404).send("An error occurred");
+
+      const firstAidTeams = await User.find({
+        userType: "professional",
+        _id: { $ne: user_id },
+      }).select("-password");
+
+      let nearestFirstAidTeams = []; // PROFESSIONAL USER ID FOR SOCKET EMISSION
+      let oneSignalIdsOfFirstAidTeams = []; // One signal IDs for notifications
+
+      firstAidTeams.forEach((team) => {
+        let result = geoLib.distance({
+          p1: {
+            lat: user.location.lat,
+            lon: user.location.lng,
+          },
+          p2: {
+            lat: team.location.lat,
+            lon: team.location.lng,
+          },
+        });
+        if (result.distance < user.detection_radius * 1000) {
+          team.one_signal_id
+            ? oneSignalIdsOfFirstAidTeams.push(team.one_signal_id)
+            : console.log();
+          nearestFirstAidTeams.push(team);
+        }
+        console.log("TEAMS  : =>>>", nearestFirstAidTeams);
+        console.log("ONE SIGNAL: =>>>", oneSignalIdsOfFirstAidTeams);
+
+        socket
+          .to(socketUsers[user_id])
+          .emit(events_list.GOTO_FIRST_AID, { teams: nearestFirstAidTeams });
+      });
+    } catch (err) {
+      console.log(err);
+      socket.emit(events_list.ERROR, { error: err.message });
+    }
+  });
+
   socket.on(events_list.FIRST_AID_HELP_NEEDED, async (payload) => {
     try {
       const { user_id } = payload;
@@ -176,7 +235,8 @@ const needy = (io, socket, socketUsers) => {
           notificationType: events_list.FIRST_AID_HELP_NEEDED,
           message: `${user.first_name} needs First Aid!`,
         },
-        oneSignalIdsOfFirstAidTeams
+        oneSignalIdsOfFirstAidTeams,
+        2
       );
 
       // Emit to all first aid teams so that they can accept or reject a request
@@ -254,7 +314,8 @@ const needy = (io, socket, socketUsers) => {
           message: `${helper.first_name} cancelled First Aid help for You`,
           notificationType: events_list.CANCEL_FIRST_AID_HELP_TEAM,
         },
-        [user.one_signal_id]
+        [user.one_signal_id],
+        2
       );
 
       oneSignalIdsOfFirstAidTeams.length > 0
@@ -353,7 +414,8 @@ const needy = (io, socket, socketUsers) => {
               message: `${user.first_name} cancelled First Aid!`,
               notificationType: events_list.CANCEL_FIRST_AID_HELP_REQUEST,
             },
-            oneSignalIdsOfFirstAidTeams
+            oneSignalIdsOfFirstAidTeams,
+            2
           )
         : console.log("NO ONE SIGNAL ID FOUND !!!");
 
@@ -463,7 +525,8 @@ const needy = (io, socket, socketUsers) => {
               restFriends: true,
               notificationType: events_list.ACCEPT_FIRST_AID_HELP,
             },
-            oneSignalIdsOfFirstAidTeams
+            oneSignalIdsOfFirstAidTeams,
+            2
           )
         : console.log("NO FIRST AID TEAM FOUND");
 
