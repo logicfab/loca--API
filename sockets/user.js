@@ -172,7 +172,7 @@ const needy = (io, socket, socketUsers) => {
         console.log("ONE SIGNAL: =>>>", oneSignalIdsOfFirstAidTeams);
 
         socket
-          .to(socketUsers[user_id])
+
           .emit(events_list.GOTO_FIRST_AID, { teams: nearestFirstAidTeams });
       });
     } catch (err) {
@@ -236,6 +236,7 @@ const needy = (io, socket, socketUsers) => {
           message: `${user.first_name} needs First Aid!`,
         },
         oneSignalIdsOfFirstAidTeams,
+        2,
         2
       );
 
@@ -315,7 +316,7 @@ const needy = (io, socket, socketUsers) => {
           notificationType: events_list.CANCEL_FIRST_AID_HELP_TEAM,
         },
         [user.one_signal_id],
-        2
+        2,2
       );
 
       oneSignalIdsOfFirstAidTeams.length > 0
@@ -415,7 +416,7 @@ const needy = (io, socket, socketUsers) => {
               notificationType: events_list.CANCEL_FIRST_AID_HELP_REQUEST,
             },
             oneSignalIdsOfFirstAidTeams,
-            2
+            2,2
           )
         : console.log("NO ONE SIGNAL ID FOUND !!!");
 
@@ -526,7 +527,7 @@ const needy = (io, socket, socketUsers) => {
               notificationType: events_list.ACCEPT_FIRST_AID_HELP,
             },
             oneSignalIdsOfFirstAidTeams,
-            2
+            2,2
           )
         : console.log("NO FIRST AID TEAM FOUND");
 
@@ -639,7 +640,9 @@ const needy = (io, socket, socketUsers) => {
           notificationType: events_list.TEAM_HELP_NEEDED,
           team_id: team_id,
         },
-        oneSignalIds
+        oneSignalIds,
+        "",
+        1
       );
 
       filteredUserIds.forEach((id) => {
@@ -659,7 +662,7 @@ const needy = (io, socket, socketUsers) => {
       // socket.to(socketUsers[user_id]).emit()
       // Send Notification to every member of team where user is member
     } catch (err) {
-      console.log(err);
+      console.log("ERROR IN TEAM_HELP_NEEDED",err);
       socket.emit(events_list.ERROR, { error: err.message });
       // socket.emit(
       //   events_list.TEAM_HELP_NEEDED,
@@ -736,7 +739,7 @@ const needy = (io, socket, socketUsers) => {
             user: helper,
             notificationType: events_list.HELP_COMPLETE,
           },
-          oneSignalIds
+          oneSignalIds,2,2
         );
 
         filteredUserIds.forEach(({ _id }) => {
@@ -761,7 +764,7 @@ const needy = (io, socket, socketUsers) => {
             requester,
             team_id,
           },
-          [requester.one_signal_id]
+          [requester.one_signal_id],1,1
         );
 
         socket.to(socketUsers[requester_id]).emit(events_list.HELP_COMPLETE, {
@@ -855,7 +858,7 @@ const needy = (io, socket, socketUsers) => {
           team_id,
           message: `${helper.first_name} is going to ${requester._id}`,
         },
-        oneSignalIds
+        oneSignalIds,1,1
       );
       // console.log("OTHER", usersOneSignalIds);
 
@@ -881,7 +884,7 @@ const needy = (io, socket, socketUsers) => {
           team_id,
           message: `${helper.first_name} is coming to you`,
         },
-        [requester.one_signal_id]
+        [requester.one_signal_id],1,1
       );
       console.log("REQUESTER ID==>>> ", socketUsers[requester_id]);
       socket.to(socketUsers[requester_id]).emit(events_list.HELP_GOING, {
@@ -994,7 +997,7 @@ const needy = (io, socket, socketUsers) => {
           requester: helper,
           notificationType: events_list.HELP_CANCEL,
         },
-        oneSignalIds
+        oneSignalIds,1,1
         // oneSignalIds.map((user) => user.one_signal_id)
       );
 
@@ -1017,7 +1020,7 @@ const needy = (io, socket, socketUsers) => {
           requester: helper,
           notificationType: events_list.HELP_CANCEL,
         },
-        [requester.one_signal_id]
+        [requester.one_signal_id],1,1
       );
     } catch (err) {
       console.log(err);
@@ -1087,7 +1090,7 @@ const needy = (io, socket, socketUsers) => {
           notificationType: events_list.CANCEL_HELP_REQUEST,
           team_id,
         },
-        usersOneSignalIds
+        usersOneSignalIds,1,1
       );
 
       oneSignalIds.forEach(({ _id }) => {

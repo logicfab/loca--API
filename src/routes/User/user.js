@@ -17,7 +17,7 @@ router.get("/getUsersById/:id", async (req, res) => {
 // desc   -> Update User By ID
 // Method -> PUT
 router.put("/updateUsersById/:id", async (req, res) => {
-  
+
   const user = await User.findByIdAndUpdate(
     req.params.id,
     { $set: req.body },
@@ -150,6 +150,8 @@ router.put("/setOnesignalId/:id", async (req, res) => {
   try {
     const { oneSignalId } = req.body;
 
+    const results = await User.updateMany({one_signal_id: oneSignalId},{$set:{one_signal_id: null}});
+    // console.log(results);
     const user = await User.findByIdAndUpdate(
       req.params.id,
       {

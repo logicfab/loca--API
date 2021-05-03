@@ -212,6 +212,7 @@ router.post("/login", async (req, res) => {
 
     user = user.toObject();
     delete user.password;
+    console.log(validPassword);
 
     if (!validPassword)
       return res

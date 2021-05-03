@@ -124,8 +124,8 @@ router.post("/removemember", async (req, res) => {
 
 router.patch("/updateTeam", async (req, res) => {
   try {
-    console.log(req.body);
-    const { team_id, team_members } = req.body;
+    console.log("BODY=>",req.body);
+    const { team_id, team_members , team_by} = req.body;
     let updatedSet = {};
     if (req.body.team_name) {
       updatedSet.team_name = req.body.team_name;
@@ -133,7 +133,8 @@ router.patch("/updateTeam", async (req, res) => {
     if (req.body.team_members) {
       updatedSet.team_members = req.body.team_members;
     }
-
+if(team_by)
+{updatedSet.team_by=team_by;}
     const teamFound = await Team.findById(team_id);
 
     if (!teamFound) {

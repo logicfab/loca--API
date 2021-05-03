@@ -23,6 +23,7 @@ module.exports = {
     type
   ) => {
     // console.log(participantsIds);
+    console.log(type, ":TYPE");
     const notification = {
       headings: { en: heading },
       contents: {
@@ -41,9 +42,11 @@ module.exports = {
       // Sending to USER
       if (type === 1) {
         // Sending to USER
+        console.log("TYPE 1");
         const response = await client.createNotification(notification);
       } else if (type === 2) {
         // Sending to FIRST_AID_TEAM
+        console.log("TYPE 2");
         const response1 = await first_aid_cleint.createNotification(
           notification
         );
