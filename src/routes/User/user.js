@@ -149,7 +149,7 @@ router.put("/toggleUserStatus/:id", async (req, res) => {
 router.put("/setOnesignalId/:id", async (req, res) => {
   try {
     const { oneSignalId } = req.body;
-
+    console.log("ONE SIGNAL BODY" , req.body);
     const results = await User.updateMany({one_signal_id: oneSignalId},{$set:{one_signal_id: null}});
     // console.log(results);
     const user = await User.findByIdAndUpdate(

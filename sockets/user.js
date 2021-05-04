@@ -258,6 +258,7 @@ const needy = (io, socket, socketUsers) => {
   });
   socket.on(events_list.CANCEL_FIRST_AID_HELP_TEAM, async (payload) => {
     try {
+      console.log("payload=>",payload);
       const { user_id, helper_id } = payload;
       const user = await User.findById(user_id);
       const helper = await User.findById(helper_id);
@@ -304,6 +305,7 @@ const needy = (io, socket, socketUsers) => {
       });
       console.log("TEAMS  : =>>>", nearestFirstAidTeams);
       console.log("ONE SIGNAL: =>>>", oneSignalIdsOfFirstAidTeams);
+      console.log("HELPER =>",helper);
       // console.log(oneSignalIdsOfFirstAidTeams);
       // Send Notification to nearestTeams (send user locaiton and name with it)
       sendNotification(
@@ -316,7 +318,7 @@ const needy = (io, socket, socketUsers) => {
           notificationType: events_list.CANCEL_FIRST_AID_HELP_TEAM,
         },
         [user.one_signal_id],
-        2,2
+        1,1
       );
 
       oneSignalIdsOfFirstAidTeams.length > 0
@@ -331,7 +333,7 @@ const needy = (io, socket, socketUsers) => {
               message: `${helper.first_name} cancelled First Aid help for ${user.first_name}`,
               notificationType: events_list.CANCEL_FIRST_AID_HELP_TEAM,
             },
-            oneSignalIdsOfFirstAidTeams
+            oneSignalIdsOfFirstAidTeams,2,2
           )
         : console.log("NO ONE SIGNAL ID FOUND!");
 
@@ -473,6 +475,7 @@ const needy = (io, socket, socketUsers) => {
       if (!helper) throw { message: "Helper not Found!" };
       // res.status(404).send("Helper not found");
       // ACCEPT_FIRST_AID_HELP
+      console.log("User",user);
       if (user.one_signal_id) {
         sendNotification(
           "First Aid is coming",
@@ -481,7 +484,9 @@ const needy = (io, socket, socketUsers) => {
             team: helper,
             notificationType: events_list.ACCEPT_FIRST_AID_HELP,
           },
-          [user.one_signal_id]
+          [user.one_signal_id],
+          "",
+          1
         );
       }
       const firstAidTeams = await User.find({
@@ -543,6 +548,7 @@ const needy = (io, socket, socketUsers) => {
             requester: helper,
           });
       });
+
       socket.to(socketUsers[user_id]).emit(events_list.ACCEPT_FIRST_AID_HELP, {
         message: "First Aid Is Coming",
         user,
@@ -558,6 +564,7 @@ const needy = (io, socket, socketUsers) => {
       // );
     }
   });
+
   socket.on(events_list.GET_NEEDY, async (payload) => {
     const { skip, limit } = payload;
     const needies = await Needy.find({ status: "unresolved" })
