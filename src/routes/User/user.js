@@ -17,7 +17,6 @@ router.get("/getUsersById/:id", async (req, res) => {
 // desc   -> Update User By ID
 // Method -> PUT
 router.put("/updateUsersById/:id", async (req, res) => {
-
   const user = await User.findByIdAndUpdate(
     req.params.id,
     { $set: req.body },
@@ -106,6 +105,7 @@ router.get("/getDetectionRadius/:id", async (req, res) => {
 router.put("/updateDetectionRadius/:id", async (req, res) => {
   try {
     const { detection_radius } = req.body;
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       {
@@ -118,7 +118,7 @@ router.put("/updateDetectionRadius/:id", async (req, res) => {
 
     if (!user) return res.status(404).send("User does not exist");
 
-    res.send({ detection_radius: user.detection_radius });
+    res.send({ detection_radius: user.detection_radius, user });
   } catch (err) {
     res.status(500).send(err.message ? { msg: err.message } : err);
   }
@@ -149,8 +149,11 @@ router.put("/toggleUserStatus/:id", async (req, res) => {
 router.put("/setOnesignalId/:id", async (req, res) => {
   try {
     const { oneSignalId } = req.body;
-    console.log("ONE SIGNAL BODY" , req.body);
-    const results = await User.updateMany({one_signal_id: oneSignalId},{$set:{one_signal_id: null}});
+    console.log("ONE SIGNAL BODY", req.body);
+    const results = await User.updateMany(
+      { one_signal_id: oneSignalId },
+      { $set: { one_signal_id: null } }
+    );
     // console.log(results);
     const user = await User.findByIdAndUpdate(
       req.params.id,
