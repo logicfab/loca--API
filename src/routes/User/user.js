@@ -12,7 +12,27 @@ router.get("/getUsersById/:id", async (req, res) => {
 
   res.send(user);
 });
+router.post("/check-number", async (req, res) => {
+  try {
+    const { phone } = req.body;
+    const user = await User.findOne({ phone }).select("-password");
+    res.json({ user: user ? user : null });
+  } catch (error) {
+    console.log("error :>> ", error);
+    res.status(404).send({ error });
+  }
+});
 
+router.post("/check-email", async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email }).select("-password");
+    res.json({ user: user ? user : null });
+  } catch (error) {
+    console.log("error :>> ", error);
+    res.status(404).send({ error });
+  }
+});
 // route  -> /user/updateUserByUserId
 // desc   -> Update User By ID
 // Method -> PUT
