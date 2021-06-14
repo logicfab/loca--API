@@ -64,6 +64,10 @@ const UserSchema = mongoose.Schema(
         default: Date.now(),
       },
     },
+    email_verified: {
+      type: Boolean,
+      default: false,
+    },
     otp_verification: {
       otp: {
         type: Number,

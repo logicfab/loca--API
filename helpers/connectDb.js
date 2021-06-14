@@ -9,7 +9,7 @@ const connectDb = async () => {
       useFindAndModify: false,
       useUnifiedTopology: true,
     });
-    console.log("Database connected!");
+    console.log("Database connected!", config.get("dbURI"));
   } catch (error) {
     console.log(error);
   }

@@ -3,14 +3,51 @@ const getConnectedTest = require("../../../sockets/user");
 const Team = require("../../models/Team");
 const User = require("../../models/User");
 const router = express.Router();
+const mongoose = require("mongoose");
 
 // route /team
 // desc Get all Teams
 // Method GET
 router.get("/:id", async (req, res) => {
-  const allTeamsOfaUser = await Team.find({ team_by: req.params.id }).select(
-    "-__v"
-  );
+  const allTeamsOfaUser = await Team.aggregate([
+    { $match: { team_by: mongoose.Types.ObjectId(req.params.id) } },
+    {
+      $lookup: {
+        from: "users",
+        let: { member: "$team_members" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $and: [{ $in: ["$phone", "$$member.phone"] }] },
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              location: 1,
+              i_need_help: 1,
+              detection_radius: 1,
+              is_online: 1,
+              phone: 1,
+              date_of_birth: 1,
+              email: 1,
+              first_name: 1,
+              gender: 1,
+              imgUrl: 1,
+              last_name: 1,
+              userType: 1,
+              one_signal_id: 1,
+            },
+          },
+        ],
+        as: "team_members",
+      },
+    },
+  ]);
+
+  // const allTeamsOfaUser = await Team.find({ team_by: req.params.id }).select(
+  //   "-__v"
+  // );
 
   if (!allTeamsOfaUser) {
     return res.status(404).send("No teams Exist");
@@ -124,8 +161,8 @@ router.post("/removemember", async (req, res) => {
 
 router.patch("/updateTeam", async (req, res) => {
   try {
-    console.log("BODY=>",req.body);
-    const { team_id, team_members , team_by} = req.body;
+    console.log("BODY=>", req.body);
+    const { team_id, team_members, team_by } = req.body;
     let updatedSet = {};
     if (req.body.team_name) {
       updatedSet.team_name = req.body.team_name;
@@ -133,8 +170,9 @@ router.patch("/updateTeam", async (req, res) => {
     if (req.body.team_members) {
       updatedSet.team_members = req.body.team_members;
     }
-if(team_by)
-{updatedSet.team_by=team_by;}
+    if (team_by) {
+      updatedSet.team_by = team_by;
+    }
     const teamFound = await Team.findById(team_id);
 
     if (!teamFound) {

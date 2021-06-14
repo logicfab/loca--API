@@ -3,77 +3,15 @@ const otpGenerator = require("otp-generator");
 const User = require("../../models/User");
 const bcrypt = require("bcrypt");
 const Nexmo = require("nexmo");
+const { sendEmail } = require("../../../helpers/EmailService");
 const router = express.Router();
+const config = require("config");
+var CryptoJS = require("crypto-js");
+const mongoose = require("mongoose");
 
 const nexmo = new Nexmo({
   apiKey: "7a663118",
   apiSecret: "HcDe3nsU2rGpX8aP",
-});
-
-// route  -> /user/auth/register
-// desc   -> Register new User
-// Method -> POST
-
-router.post("/register", async (req, res) => {
-  try {
-    const {
-      email,
-      imgUrl,
-      first_name,
-      last_name,
-      phone,
-      date_of_birth,
-      gender,
-      password,
-      userType,
-    } = req.body;
-
-    const alreadyRegistered = await User.findOne({
-      email: email.toLowerCase(),
-    });
-
-    if (alreadyRegistered) {
-      return res
-        .status(400)
-        .send({ success: false, msg: "Email address already exists!" });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const user = await User.findOneAndUpdate(
-      {
-        "phone.code": phone.code,
-        "phone.number": phone.number,
-      },
-      {
-        $set: {
-          email,
-          imgUrl,
-          first_name,
-          last_name,
-          date_of_birth,
-          gender,
-          password: hashedPassword,
-          userType,
-        },
-      },
-      { new: true }
-    );
-
-    const registered_user = await user.save();
-
-    delete registered_user.password;
-    console.log(registered_user);
-
-    res.send({
-      success: true,
-      msg: "Registered successfully",
-      user: registered_user,
-    });
-  } catch (err) {
-    res.status(500).send(err.message ? { msg: err.message } : err);
-  }
 });
 
 // route  -> /user/auth/sendOTP
@@ -208,6 +146,9 @@ router.post("/login", async (req, res) => {
     if (!user)
       return res.status(400).send("Invalid Email, Password or User Type");
 
+    if (!user.email_verified)
+      return res.status(400).send("Please verify your email first");
+
     const validPassword = await bcrypt.compare(password, user.password);
 
     user = user.toObject();
@@ -312,5 +253,132 @@ router.post("/reset-password", async (req, res) => {
     res.status(500).send(err.message ? { msg: err.message } : err);
   }
 });
+// route  -> /user/auth/register
+// desc   -> Register new User
+// Method -> POST
+
+router.post("/register", async (req, res) => {
+  try {
+    const {
+      email,
+      imgUrl,
+      first_name,
+      last_name,
+      phone,
+      date_of_birth,
+      gender,
+      password,
+      userType,
+    } = req.body;
+
+    // :TODO: :FIXME:
+    const alreadyRegistered = await User.findOne({
+      email: email.toLowerCase(),
+    });
+
+    if (alreadyRegistered) {
+      return res
+        .status(400)
+        .send({ success: false, msg: "Email address already exists!" });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const user = await User.findOneAndUpdate(
+      {
+        "phone.code": phone.code,
+        "phone.number": phone.number,
+      },
+      {
+        $set: {
+          email,
+          imgUrl,
+          first_name,
+          last_name,
+          date_of_birth,
+          gender,
+          password: hashedPassword,
+          userType,
+        },
+      },
+      { new: true, upsert: true }
+    );
+
+    const registered_user = await user.save();
+
+    delete registered_user.password;
+    console.log(registered_user);
+
+    await sendWelcomeEmail(email, user._id);
+
+    res.send({
+      success: true,
+      msg: "Registered successfully",
+      user: "",
+    });
+  } catch (err) {
+    console.log({ err });
+    res.status(500).send(err.message ? { msg: err.message } : err);
+  }
+});
+
+router.get("/verify", async (req, res) => {
+  try {
+    const { query } = req.query;
+    const data = req.query.query.replace(/\s/g, "+");
+
+    var bytes = CryptoJS.AES.decrypt(data, config.get("secretKey"));
+    var originalText = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+
+    const id = originalText[0]._id;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.send("Invalid Link!....OR EXPIRED");
+    }
+    const time = new Date(originalText[1].time);
+
+    time.setMinutes(time.getMinutes() + 10);
+
+    const now = new Date();
+    if (time > now) {
+      const user = await User.findByIdAndUpdate(
+        id,
+        {
+          $set: {
+            email_verified: true,
+          },
+        },
+        { new: true }
+      );
+      await sendEmail(
+        user.email,
+        "[LOCA Email Confirmation success] Welcome to LOCA...",
+        "Welcome to Loca. Your email has been successfully verified."
+      );
+      res.send({ msg: "email verified successfully...." });
+    } else res.status(400).send({ msg: "Link has been expired.." });
+  } catch (exp) {
+    return res.status(404).send({ msg: "Invalid link or expired..." });
+  }
+});
+
+const sendWelcomeEmail = async (email, _id) => {
+  await sendEmail(
+    email,
+    "LOCA! Please verify your email address",
+    HTMLWELCOME(_id, new Date())
+  );
+};
+
+function HTMLWELCOME(id, time) {
+  var data = [{ _id: id }, { time }, { url: config.get("host") }];
+
+  var ciphertext = CryptoJS.AES.encrypt(
+    JSON.stringify(data),
+    config.get("secretKey")
+  ).toString();
+  const host = config.get("host") + "/user/auth/verify?query=" + ciphertext;
+  return `<button><a href="${host}">Click here to verify your email address.</a></button>`;
+}
 
 module.exports = router;
