@@ -43,6 +43,35 @@ router.get("/:id", async (req, res) => {
         as: "team_members",
       },
     },
+    {
+      $lookup: {
+        from: "users",
+        let: { teamby: "$team_by" },
+        pipeline: [
+          { $match: { $expr: { $and: [{ $eq: ["$_id", "$$teamby"] }] } } },
+          {
+            $project: {
+              _id: 1,
+              location: 1,
+              i_need_help: 1,
+              detection_radius: 1,
+              is_online: 1,
+              phone: 1,
+              date_of_birth: 1,
+              email: 1,
+              first_name: 1,
+              gender: 1,
+              imgUrl: 1,
+              last_name: 1,
+              userType: 1,
+              one_signal_id: 1,
+            },
+          },
+        ],
+        as: "team_by",
+      },
+    },
+    { $unwind: { path: "$team_by", preserveNullAndEmptyArrays: true } },
   ]);
 
   // const allTeamsOfaUser = await Team.find({ team_by: req.params.id }).select(
