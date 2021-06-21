@@ -272,15 +272,15 @@ router.post("/register", async (req, res) => {
     } = req.body;
 
     // :TODO: :FIXME:
-    // const alreadyRegistered = await User.findOne({
-    //   email: email.toLowerCase(),
-    // });
+    const alreadyRegistered = await User.findOne({
+      email: email.toLowerCase(),
+    });
 
-    // if (alreadyRegistered) {
-    //   return res
-    //     .status(400)
-    //     .send({ success: false, msg: "Email address already exists!" });
-    // }
+    if (alreadyRegistered) {
+      return res
+        .status(400)
+        .send({ success: false, msg: "Email address already exists!" });
+    }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -411,6 +411,7 @@ function HTMLWELCOME(id, time) {
        <div
          style="
            text-align: center;
+           margin:"20px";
            background-color: rgb(40, 44, 52);
            min-height: 100vh;
            display: flex;
@@ -446,7 +447,7 @@ function HTMLWELCOME(id, time) {
              </h2>
            </div>
            <button class="btn btn-success">
-             <a href="${host}">Verify</a>
+             <a href="${host}"><h1>Verify</h1></a>
            </button>
            <div style="text-align: left; margin-top: 50px">
              Amsterdam - Loca©
