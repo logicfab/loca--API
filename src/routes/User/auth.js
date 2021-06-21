@@ -272,15 +272,15 @@ router.post("/register", async (req, res) => {
     } = req.body;
 
     // :TODO: :FIXME:
-    const alreadyRegistered = await User.findOne({
-      email: email.toLowerCase(),
-    });
+    // const alreadyRegistered = await User.findOne({
+    //   email: email.toLowerCase(),
+    // });
 
-    if (alreadyRegistered) {
-      return res
-        .status(400)
-        .send({ success: false, msg: "Email address already exists!" });
-    }
+    // if (alreadyRegistered) {
+    //   return res
+    //     .status(400)
+    //     .send({ success: false, msg: "Email address already exists!" });
+    // }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -377,8 +377,92 @@ function HTMLWELCOME(id, time) {
     JSON.stringify(data),
     config.get("secretKey")
   ).toString();
+
+  const url = config.get("host") + "/logo.png";
+
   const host = config.get("host") + "/user/auth/verify?query=" + ciphertext;
-  return `<button><a href="${host}">Click here to verify your email address.</a></button>`;
+
+  return `<html>
+   <head>
+     <link
+       rel="stylesheet"
+       href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+       integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
+       crossorigin="anonymous"
+     />
+     <script
+       src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+       integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
+       crossorigin="anonymous"
+     ></script>
+     <script
+       src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+       integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+       crossorigin="anonymous"
+     ></script>
+     <script
+       src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+       integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+       crossorigin="anonymous"
+     ></script>
+   </head>
+   <body>
+     <div id="root">
+       <div
+         style="
+           text-align: center;
+           background-color: rgb(40, 44, 52);
+           min-height: 100vh;
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+           justify-content: center;
+           font-size: calc(10px + 2vmin);
+           color: white;
+         "
+       >
+         <div class="container">
+           <div
+             style="
+               text-align: center;
+               margin-top: 10px;
+               display: flex;
+               flex-direction: row;
+               align-items: center;
+               justify-content: center;
+             "
+           >
+             <div style="text-align: center; width: 315px">
+               <div style="padding: 5px">
+                 <img src="${url}" height="300" width="300" />
+               </div>
+             </div>
+           </div>
+           <div style="margin-top: 100px">
+             <h1>Hi Loca user!</h1>
+             <h2 style="margin-left: 0px">
+               One last step to complete your loca account. Confirm your email
+               address by clicking on the button below
+             </h2>
+           </div>
+           <button class="btn btn-success">
+             <a href="${host}">Verify</a>
+           </button>
+           <div style="text-align: left; margin-top: 50px">
+             Amsterdam - Loca©
+             <a href="mailto:info@loca-loca.nl">info@loca-loca.nl</a>
+             <br />
+           </div>
+           <div style="text-align: left; margin-top: 50px">
+             <a href="http://localhost:3000/">Unsubscribe</a>
+           </div>
+         </div>
+       </div>
+     </div>
+   </body>
+ </html>
+ `;
+  // return `<button><a href="${host}">Click here to verify your email address.</a></button>`;
 }
 
 module.exports = router;
