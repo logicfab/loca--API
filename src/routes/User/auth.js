@@ -139,10 +139,11 @@ router.post("/verifyOTP", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { email, password, userType } = req.body;
-    let user = await User.findOne({ email: email, userType: userType }).select(
-      "+password"
-    );
-
+    let user = await User.findOne({
+      email: email,
+      userType: userType,
+    }).select("+password");
+    console.log({ user });
     if (!user)
       return res.status(400).send("Invalid Email, Password or User Type");
 
@@ -162,6 +163,7 @@ router.post("/login", async (req, res) => {
 
     return res.send({ success: true, msg: "Logged in", user: user });
   } catch (err) {
+    console.log(err);
     res.status(500).send(err.message ? { msg: err.message } : err);
   }
 });
@@ -275,7 +277,6 @@ router.post("/register", async (req, res) => {
     const alreadyRegistered = await User.findOne({
       email: email.toLowerCase(),
     });
-
     if (alreadyRegistered) {
       return res
         .status(400)
@@ -310,11 +311,11 @@ router.post("/register", async (req, res) => {
     delete registered_user.password;
     console.log(registered_user);
 
-    await sendWelcomeEmail(email, user._id);
+    await sendWelcomeEmail(email, user._id, first_name);
 
     res.send({
       success: true,
-      msg: "Registered successfully",
+      msg: "An email has been sent to you. Please verify your account",
       user: "",
     });
   } catch (err) {
@@ -340,37 +341,37 @@ router.get("/verify", async (req, res) => {
     time.setMinutes(time.getMinutes() + 10);
 
     const now = new Date();
-    if (time > now) {
-      const user = await User.findByIdAndUpdate(
-        id,
-        {
-          $set: {
-            email_verified: true,
-          },
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          email_verified: true,
         },
-        { new: true }
-      );
-      await sendEmail(
-        user.email,
-        "[LOCA Email Confirmation success] Welcome to LOCA...",
-        "Welcome to Loca. Your email has been successfully verified."
-      );
-      res.send({ msg: "email verified successfully...." });
-    } else res.status(400).send({ msg: "Link has been expired.." });
+      },
+      { new: true }
+    );
+    await sendEmail(
+      user.email,
+      "[LOCA Email Confirmation success] Welcome to LOCA...",
+      "Welcome to Loca. Your email has been successfully verified."
+    );
+    res.send({ msg: "email verified successfully...." });
+    // } else res.status(400).send({ msg: "Link has been expired.." });
   } catch (exp) {
     return res.status(404).send({ msg: "Invalid link or expired..." });
   }
 });
 
-const sendWelcomeEmail = async (email, _id) => {
+const sendWelcomeEmail = async (email, _id, first_name) => {
   await sendEmail(
     email,
     "LOCA! Please verify your email address",
-    HTMLWELCOME(_id, new Date())
+    HTMLWELCOME(_id, new Date(), first_name)
   );
 };
 
-function HTMLWELCOME(id, time) {
+function HTMLWELCOME(id, time, first_name) {
   var data = [{ _id: id }, { time }, { url: config.get("host") }];
 
   var ciphertext = CryptoJS.AES.encrypt(
@@ -382,31 +383,7 @@ function HTMLWELCOME(id, time) {
 
   const host = config.get("host") + "/user/auth/verify?query=" + ciphertext;
 
-  return `<html>
-   <head>
-     <link
-       rel="stylesheet"
-       href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
-       integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
-       crossorigin="anonymous"
-     />
-     <script
-       src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
-       integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
-       crossorigin="anonymous"
-     ></script>
-     <script
-       src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
-       integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
-       crossorigin="anonymous"
-     ></script>
-     <script
-       src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
-       integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
-       crossorigin="anonymous"
-     ></script>
-   </head>
-   <body>
+  return `
      <div id="root">
        <div
          style="
@@ -440,7 +417,7 @@ function HTMLWELCOME(id, time) {
              </div>
            </div>
            <div style="margin-top: 100px">
-             <h1>Hi Loca user!</h1>
+             <h1>Hi ${first_name}</h1>
              <h2 style="margin-left: 0px">
                One last step to complete your loca account. Confirm your email
                address by clicking on the button below
@@ -459,9 +436,28 @@ function HTMLWELCOME(id, time) {
            </div>
          </div>
        </div>
+       <link
+       rel="stylesheet"
+       href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+       integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
+       crossorigin="anonymous"
+     />
+     <script
+       src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+       integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
+       crossorigin="anonymous"
+     ></script>
+     <script
+       src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+       integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+       crossorigin="anonymous"
+     ></script>
+     <script
+       src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+       integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+       crossorigin="anonymous"
+     ></script>
      </div>
-   </body>
- </html>
  `;
   // return `<button><a href="${host}">Click here to verify your email address.</a></button>`;
 }
