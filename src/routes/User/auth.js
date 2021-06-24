@@ -341,7 +341,10 @@ router.get("/verify", async (req, res) => {
     time.setMinutes(time.getMinutes() + 10);
 
     const now = new Date();
-
+    const alreadyVerified = await User.findById(id);
+    if (alreadyVerified.email_verified) {
+      return res.send({ msg: "Link Expired..." });
+    }
     const user = await User.findByIdAndUpdate(
       id,
       {
@@ -351,6 +354,7 @@ router.get("/verify", async (req, res) => {
       },
       { new: true }
     );
+
     await sendEmail(
       user.email,
       "[LOCA Email Confirmation success] Welcome to LOCA...",

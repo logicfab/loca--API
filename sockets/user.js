@@ -1137,8 +1137,8 @@ const needy = (io, socket, socketUsers) => {
     }
   });
   socket.on(events_list.FIND_FRIENDS, async (payload) => {
-    const { team_id, user_id } = payload;
-
+    const { team_id, user_id, userLocation } = payload;
+    console.log({ payload });
     try {
       const requester = await User.findById(user_id).select("-password");
 
@@ -1176,10 +1176,7 @@ const needy = (io, socket, socketUsers) => {
       }
 
       const userSortedDistances = geolib.orderByDistance(
-        {
-          latitude: requester.location.lat,
-          longitude: requester.location.lng,
-        },
+        userLocation,
         allUsersInTeam[0].team_members.map((user) => {
           return {
             latitude: user.location.lat,
