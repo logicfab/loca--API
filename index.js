@@ -27,7 +27,9 @@ app.use("/upload", require("./src/routes/FileUploads"));
 app.use("/uploads", express.static("uploads"));
 
 app.get("/", (req, res) => {
-  res.render("../views/welcome");
+  // res.render("../views/welcome");
+
+  res.send({ msg: "loca----" });
 });
 
 const server = app.listen(PORT, () => {

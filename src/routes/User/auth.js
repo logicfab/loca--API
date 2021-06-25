@@ -145,10 +145,12 @@ router.post("/login", async (req, res) => {
     }).select("+password");
     console.log({ user });
     if (!user)
-      return res.status(400).send("Invalid Email, Password or User Type");
+      return res
+        .status(400)
+        .send({ msg: "Invalid Email, Password or User Type" });
 
     if (!user.email_verified)
-      return res.status(400).send("Please verify your email first");
+      return res.status(400).send({ msg: "Please verify your email first" });
 
     const validPassword = await bcrypt.compare(password, user.password);
 
