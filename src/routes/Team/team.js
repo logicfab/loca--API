@@ -1,5 +1,4 @@
 const express = require("express");
-const getConnectedTest = require("../../../sockets/user");
 const Team = require("../../models/Team");
 const User = require("../../models/User");
 const router = express.Router();
@@ -9,8 +8,17 @@ const mongoose = require("mongoose");
 // desc Get all Teams
 // Method GET
 router.get("/:id", async (req, res) => {
+  const user = await User.findById(req.params.id);
+
   const allTeamsOfaUser = await Team.aggregate([
-    { $match: { team_by: mongoose.Types.ObjectId(req.params.id) } },
+    {
+      $match: {
+        $or: [
+          { team_by: mongoose.Types.ObjectId(req.params.id) },
+          { team_members: { phone: user.phone } },
+        ],
+      },
+    },
     {
       $lookup: {
         from: "users",
@@ -74,15 +82,15 @@ router.get("/:id", async (req, res) => {
     { $unwind: { path: "$team_by", preserveNullAndEmptyArrays: true } },
   ]);
 
-  // const allTeamsOfaUser = await Team.find({ team_by: req.params.id }).select(
-  //   "-__v"
-  // );
-
-  if (!allTeamsOfaUser) {
-    return res.status(404).send("No teams Exist");
+  if (!allTeamsOfaUser.length) {
+    return res.status(404).send({ msg: "No teams Exist" });
   }
 
-  res.send({ msg: "All teams of a user", data: allTeamsOfaUser });
+  res.send({
+    total: allTeamsOfaUser.length,
+    msg: "All teams of a user",
+    data: allTeamsOfaUser,
+  });
 });
 
 // route /team

@@ -1,5 +1,6 @@
 const e = require("express");
 const express = require("express");
+const Auth = require("../../../middlewares/Auth");
 const User = require("../../models/User");
 const router = express.Router();
 const Vehicle = require("../../models/vehicle");
@@ -204,6 +205,24 @@ router.post("/get-vehicle-location", async (req, res) => {
   } catch (e) {
     console.log(e);
     res.status(400).send({ message: "Not Found" });
+  }
+});
+
+router.post("/set-detection-time", Auth, async (req, res) => {
+  try {
+    const { hours, minutes } = req.body;
+
+    await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $set: { detection_time: { hours, minutes } },
+      },
+      { new: true }
+    );
+
+    res.send({ msg: `Detection Time set to  ${hours}H and ${minutes}M` });
+  } catch (error) {
+    res.status(500).send({ msg: error.message });
   }
 });
 

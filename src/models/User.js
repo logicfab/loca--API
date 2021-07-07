@@ -84,6 +84,14 @@ const UserSchema = mongoose.Schema(
       type: Number,
       default: 2,
     },
+    detection_time: {
+      hours: {
+        type: Number,
+      },
+      minutes: {
+        type: Number,
+      },
+    },
     is_online: {
       type: Boolean,
       default: true,
