@@ -1,9 +1,12 @@
 const express = require("express");
-const Team = require("../../models/Team");
-const User = require("../../models/User");
 const router = express.Router();
 const mongoose = require("mongoose");
+var CryptoJS = require("crypto-js");
 
+const Team = require("../../models/Team");
+const User = require("../../models/User");
+
+const config = require("config");
 // route /team
 // desc Get all Teams
 // Method GET
@@ -126,7 +129,22 @@ router.post("/", async (req, res) => {
       team_members: [userPhone],
     });
 
-    const response = await team.save();
+    const link =
+      config.get("host") +
+      "/group/" +
+      CryptoJS.AES.encrypt(
+        team._id.toString(),
+        config.get("secretKey")
+      ).toString();
+
+    console.log("link :>> ", link);
+    await team.save();
+
+    const response = await Team.findByIdAndUpdate(
+      team._id,
+      { $set: { link } },
+      { new: true }
+    );
 
     res.send(response);
   } catch (err) {

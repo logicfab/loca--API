@@ -4,18 +4,12 @@ const geolib = require("geolib");
 const { sendNotification } = require("../helpers/oneSignalNotification");
 const mongoose = require("mongoose");
 
-const {
-  findByIdAndUpdate,
-  findOneAndUpdate,
-} = require("../src/models/FirstAidTeam");
-
-const FirstAidTeam = require("../src/models/FirstAidTeam");
 const Needy = require("../src/models/Needy");
 const Team = require("../src/models/Team");
 const TeamHelp = require("../src/models/teamHelp");
 const User = require("../src/models/User");
 const Vehicle = require("../src/models/vehicle");
-const socket = require("./socket");
+const { myFriends } = require("../controllers/FriendController.jS");
 
 let events_list = {
   UPDATE_LOCATION: "UPDATE_LOCATION",
@@ -269,15 +263,6 @@ const needy = (io, socket, socketUsers) => {
       const user = await User.findById(user_id);
       const helper = await User.findById(helper_id);
 
-      const needy = await Needy.findOneAndUpdate(
-        { user: user_id, status: "unresolved" },
-        {
-          $unset: {
-            assigned_team: 1,
-          },
-        },
-        { new: true, upsert: true }
-      );
       if (!user) throw { message: "User does not exist" };
       // socket
       //   .to(socketUsers[user_id])
@@ -377,18 +362,6 @@ const needy = (io, socket, socketUsers) => {
       const { user_id } = payload;
       const user = await User.findById(user_id);
 
-      const needy = await Needy.findOneAndUpdate(
-        { user: user_id, status: "unresolved" },
-        {
-          $unset: {
-            assigned_team: 1,
-          },
-          $set: {
-            status: "cancelled",
-          },
-        },
-        { new: true, upsert: true }
-      );
       if (!user) throw { message: "User does not exist" };
       const firstAidTeams = await User.find({ userType: "professional" });
 
@@ -603,24 +576,6 @@ const needy = (io, socket, socketUsers) => {
         // return res.status(404).send({ message: "Team does not exist!" });
       }
 
-      const newTeamHelp = await TeamHelp.findOneAndUpdate(
-        {
-          $and: [{ requester: user_id }, { team_selected: team_id }],
-        },
-        {
-          $set: {
-            time: Date.now(),
-            requester: user_id,
-            team_selected: team_id,
-            helpMessage: needHelp,
-          },
-        },
-        {
-          new: true,
-          upsert: true,
-        }
-      );
-
       const teamPhoneNumbers = team.team_members.map((t) => {
         return t.phone;
       });
@@ -700,23 +655,6 @@ const needy = (io, socket, socketUsers) => {
 
         const helper = await User.findById(helper_id);
         if (!helper) throw { message: "Helper does not exist" };
-
-        const teamHelp = await TeamHelp.findOneAndUpdate(
-          {
-            $and: [{ requester: requester_id }, { team_selected: team_id }],
-          },
-          {
-            $set: {
-              status: "completed",
-            },
-            $addToSet: {
-              helpers: helper_id,
-            },
-          },
-          {
-            new: true,
-          }
-        ).populate("team_selected");
 
         const teamPhoneNumbers = teamExists.team_members.map((t) => {
           return t.phone;
@@ -818,22 +756,6 @@ const needy = (io, socket, socketUsers) => {
       const teamExists = await Team.findById(team_id);
       if (!teamExists) throw { message: "Team does not exist!" };
       // return res.status(404).send("Team does not exist");
-
-      const teamHelp = await TeamHelp.findOneAndUpdate(
-        {
-          $and: [{ requester: requester_id }, { team_selected: team_id }],
-        },
-        {
-          $set: {
-            helper: helper_id,
-            status: "accepted",
-          },
-        },
-        {
-          new: true,
-          upsert: true,
-        }
-      ).populate("team_selected");
 
       const teamPhoneNumbers = teamExists.team_members.map((t) => {
         return t.phone;
@@ -942,25 +864,6 @@ const needy = (io, socket, socketUsers) => {
       const teamExists = await Team.findById(team_id);
       if (!teamExists) throw { message: "Team does not exist!" };
       // return res.status(404).send("Team does not exist");
-
-      const teamHelp = await TeamHelp.findOneAndUpdate(
-        {
-          $and: [{ requester: requester_id }, { team_selected: team_id }],
-        },
-        {
-          $set: {
-            helper: null,
-            status: "pending",
-          },
-          $addToSet: {
-            helpers: helper_id,
-            cancelled_by: helper_id,
-          },
-        },
-        {
-          new: true,
-        }
-      ).populate("team_selected");
 
       socket.to(socketUsers[requester_id]).emit(events_list.HELP_CANCEL, {
         message: helper.first_name + " Canceled the help. Find other members",
@@ -1246,21 +1149,11 @@ const needy = (io, socket, socketUsers) => {
   });
   socket.on(events_list.ANONYMOUS_GROUP, async (payload) => {
     const { contacts, user_id } = payload;
-
     try {
       const anonymousTeam = await Team.findOneAndUpdate(
-        {
-          team_by: user_id,
-          team_type: "anonymous",
-          team_name: "anonymous",
-        },
-        {
-          team_members: contacts,
-        },
-        {
-          new: true,
-          upsert: true,
-        }
+        { team_by: user_id, team_type: "anonymous", team_name: "anonymous" },
+        { team_members: contacts },
+        { new: true, upsert: true }
       );
 
       // console.log(anonymousTeam);
@@ -1278,34 +1171,12 @@ const needy = (io, socket, socketUsers) => {
     }
   });
   socket.on(events_list.GET_ANONYMOUS_GROUP, async (payload) => {
-    const { user_id } = payload;
-    let phoneNumbers = [];
-
     try {
-      const anonymousTeam = await Team.findOne({
-        team_by: user_id,
-        team_type: "anonymous",
-        team_name: "anonymous",
-      }).select("-__v");
+      const { user_id } = payload;
+      const user = await User.findById(user_id);
+      const { friends } = await myFriends(user);
 
-      if (!anonymousTeam) {
-        socket.emit(events_list.GET_ANONYMOUS_GROUP, {
-          message: "Anonymous Team does not exist",
-          Friends: [],
-          notificationType: "GET_ANONYMOUS_GROUP",
-        });
-      }
-
-      anonymousTeam.team_members.forEach((item) => {
-        phoneNumbers.push(item.phone);
-      });
-
-      const friends = await User.find({
-        phone: { $in: phoneNumbers },
-      });
-
-      // console.log(friends);
-      socket.to(socketUsers[user_id]).emit(events_list.GET_ANONYMOUS_GROUP, {
+      socket.emit(events_list.GET_ANONYMOUS_GROUP, {
         message: "Anonymous Team",
         Friends: friends,
         notificationType: "GET_ANONYMOUS_GROUP",
@@ -1314,10 +1185,6 @@ const needy = (io, socket, socketUsers) => {
     } catch (err) {
       console.log(err);
       socket.emit(events_list.ERROR, { error: err.message });
-      // socket.emit(
-      //   events_list.GET_ANONYMOUS_GROUP,
-      //   err.message ? err.message : err
-      // );
     }
   });
   socket.on(events_list.SET_VEHICLE_LOCATION, async (payload) => {

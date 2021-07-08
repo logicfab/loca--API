@@ -1,11 +1,14 @@
 const express = require("express");
 const app = express();
 const cors = require("cors");
-const socketIO = require("socket.io");
+const path = require("path");
+const schedule = require("node-schedule");
+
 const connectDb = require("./helpers/connectDb");
 const { socketioConnect } = require("./sockets/socket");
-const getConnectedTest = require("./sockets/user");
-const path = require("path");
+
+const { CronJob } = require("./src/models/CronJob");
+const { Friend } = require("./src/models/Friend");
 
 const PORT = process.env.PORT || 5002;
 
@@ -40,3 +43,24 @@ const server = app.listen(PORT, () => {
 const io = require("socket.io").listen(server);
 // io.on("connection", (socket) => {console.log("user connected")});
 socketioConnect(io);
+
+// Running Active Cron Jobs=>>>>>
+CronJob.find()
+  .then((activeJobs) => {
+    console.log("Found ", activeJobs.length, " Jobs");
+    activeJobs.forEach(({ id, ended_at }) => {
+      schedule.scheduleJob(
+        id,
+        ended_at,
+        function (id) {
+          Job.findOneAndRemove({ id }).then((result) => {});
+          Friend.findByIdAndUpdate(
+            id,
+            { $set: { connected: false } },
+            { new: true }
+          ).then((result) => {});
+        }.bind(null, id)
+      );
+    });
+  })
+  .catch((err) => {});

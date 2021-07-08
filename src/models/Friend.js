@@ -1,8 +1,18 @@
 const mongoose = require("mongoose");
 
 const schema = new mongoose.Schema({
-  user1: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
-  user2: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
+  user1: {
+    phone: {
+      code: { type: String, required: true, trim: true },
+      number: { type: String, required: true, trim: true },
+    },
+  },
+  user2: {
+    phone: {
+      code: { type: String, required: true, trim: true },
+      number: { type: String, required: true, trim: true },
+    },
+  },
   connected: { type: Boolean, default: false },
   status: {
     type: String,
