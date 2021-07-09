@@ -2,11 +2,13 @@ const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 var CryptoJS = require("crypto-js");
+const config = require("config");
 
 const Team = require("../../models/Team");
 const User = require("../../models/User");
+const { CronJob } = require("../../models/CronJob");
+const Auth = require("../../../middlewares/Auth");
 
-const config = require("config");
 // route /team
 // desc Get all Teams
 // Method GET
@@ -255,6 +257,74 @@ router.patch("/updateTeam", async (req, res) => {
   } catch (err) {
     console.log(err);
     res.send(err.message ? { msg: err.msg } : err);
+  }
+});
+router.post("/add-me-link", Auth, async (req, res) => {
+  try {
+    const { link } = req.body;
+    const { phone } = req.user;
+
+    const encryptedId = link.split("/group/");
+
+    const _link = CryptoJS.AES.decrypt(encryptedId[1], config.get("secretKey"));
+    var _id = _link.toString(CryptoJS.enc.Utf8);
+
+    const alreadyAMember = await Team.findOne({
+      $and: [{ _id }, { "team_members.phone": phone }],
+    });
+
+    if (!alreadyAMember) {
+      const newTeam = await Team.findByIdAndUpdate(
+        _id,
+        { $push: { team_members: { phone } } },
+        { new: true }
+      );
+
+      return res.send({
+        msg: "You're now connected to the group " + newTeam.team_name,
+      });
+    } else {
+      return res.send({
+        msg: "You're already in the group " + alreadyAMember.team_name,
+      });
+    }
+  } catch (error) {
+    console.log({ error });
+    res.status(500).send({ msg: error.message });
+  }
+});
+router.post("/toggle-visibility", Auth, async (req, res) => {
+  try {
+    const { team_id, visible } = req.body;
+    const { phone } = req.user;
+
+    await Team.findByIdAndUpdate(
+      team_id,
+      {
+        $set: { "team_members.$[member].visibility": visible },
+      },
+      { arrayFilters: [{ "member.phone": phone }], new: true }
+    );
+    const status = !visible ? " Off" : "On";
+
+    res.send({ msg: "Your visibility has been set to " + status });
+  } catch (error) {
+    res.status(500).send({ msg: error.message });
+  }
+});
+router.post("/leave-group", Auth, async (req, res, next) => {
+  try {
+    const { team_id } = req.body;
+    const { phone } = req.user;
+
+    await Team.updateOne(
+      { _id: team_id },
+      { $pull: { team_members: { phone } } },
+      { new: true }
+    );
+    res.send({ msg: "You've successfully left the group" });
+  } catch (error) {
+    res.status(500).send({ msg: error.message });
   }
 });
 

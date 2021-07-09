@@ -24,13 +24,19 @@ router.post("/send-request", auth, async (req, res) => {
         { status: "Pending" },
       ],
     });
-
+    console.log({ alreadySent });
     if (alreadySent) {
       return res.json({ msg: "Request already sent", status: false });
     }
 
-    const friend = new Friend({ user1: { phone: me }, user2: { phone: user } });
-    await friend.save();
+    const friend = await Friend.findOneAndUpdate(
+      {
+        user1: { phone: me },
+        user2: { phone: user },
+      },
+      { $set: { status: "Pending" } },
+      { new: true, upsert: true }
+    );
 
     const otherUser = await User.findOne({ phone: user });
 
@@ -199,5 +205,18 @@ router.post("/cancel-request", auth, async (req, res) => {
     res.status(500).send({ msg: error.message });
   }
 });
+router.post("/disconnect", auth, async (req, res, next) => {
+  try {
+    const { _id } = req.body;
+    const friend = await Friend.findByIdAndUpdate(
+      _id,
+      { $set: { connected: false } },
+      { new: true }
+    );
 
+    res.send({ msg: "You are now disconnected." });
+  } catch (error) {
+    res.status(500).send({ msg: error.message });
+  }
+});
 module.exports = router;

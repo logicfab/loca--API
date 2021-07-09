@@ -1,9 +1,13 @@
 const e = require("express");
 const express = require("express");
 const Auth = require("../../../middlewares/Auth");
+const { CronJob } = require("../../models/CronJob");
 const User = require("../../models/User");
 const router = express.Router();
 const Vehicle = require("../../models/vehicle");
+
+const schedule = require("node-schedule");
+const Mongoose = require("mongoose");
 // route  -> /user/GetUsersById/:id
 // desc   -> GET USER BY USER ID
 // Method -> GET
@@ -192,7 +196,6 @@ router.put("/setOnesignalId/:id", async (req, res) => {
     res.status(500).send(err.message ? { msg: err.message } : err);
   }
 });
-
 router.post("/get-vehicle-location", async (req, res) => {
   const { user_id } = req.body;
   try {
@@ -207,7 +210,6 @@ router.post("/get-vehicle-location", async (req, res) => {
     res.status(400).send({ message: "Not Found" });
   }
 });
-
 router.post("/set-detection-time", Auth, async (req, res) => {
   try {
     const { hours, minutes } = req.body;
@@ -222,6 +224,54 @@ router.post("/set-detection-time", Auth, async (req, res) => {
 
     res.send({ msg: `Detection Time set to  ${hours}H and ${minutes}M` });
   } catch (error) {
+    res.status(500).send({ msg: error.message });
+  }
+});
+router.post("/pause", Auth, async (req, res) => {
+  try {
+    const { minutes } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: { status: !req.user.status } },
+      { new: true }
+    );
+
+    if (!req.user.status) {
+      const ended_at = new Date();
+      ended_at.setMinutes(ended_at.getMinutes() + minutes);
+
+      const job = new CronJob({ id: req.user._id, ended_at, type: "USER" });
+      await job.save();
+      const id = req.user._id;
+
+      schedule.scheduleJob(
+        Mongoose.Types.ObjectId(id).toString(),
+        ended_at,
+        function (id) {
+          Job.findOneAndRemove({ id }).then((result) => {});
+          User.findByIdAndUpdate(
+            id,
+            { $set: { status: true } },
+            { new: true }
+          ).then((result) => {});
+        }.bind(null, id)
+      );
+    } else {
+      try {
+        schedule.scheduledJobs[req.user._id].cancel();
+        console.log("Job deleted");
+
+        await CronJob.findOneAndRemove({ id: req.user._id });
+      } catch (error) {
+        console.log(error);
+        console.log("NOT FOUND");
+      }
+    }
+    const status = req.user.status ? "Unpause" : "Pause";
+    res.send({ msg: `You've gone into ${status} position` });
+  } catch (error) {
+    console.log(error);
     res.status(500).send({ msg: error.message });
   }
 });

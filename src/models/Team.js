@@ -14,6 +14,7 @@ const TeamSchema = mongoose.Schema(
     team_members: [
       {
         connected: { type: Boolean, default: true },
+        visibility: { type: Boolean, default: true },
         phone: {
           code: { type: String, required: true, trim: true },
           number: { type: String, required: true, trim: true },

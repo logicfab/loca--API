@@ -2,6 +2,7 @@ const User = require("../src/models/User");
 
 module.exports = async (req, res, next) => {
   const { user } = req.headers;
+
   if (!user) {
     return res.status(500).send({ msg: "Access Denied" });
   } else {

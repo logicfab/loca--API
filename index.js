@@ -9,6 +9,7 @@ const { socketioConnect } = require("./sockets/socket");
 
 const { CronJob } = require("./src/models/CronJob");
 const { Friend } = require("./src/models/Friend");
+const User = require("./src/models/User");
 
 const PORT = process.env.PORT || 5002;
 
@@ -54,11 +55,18 @@ CronJob.find()
         ended_at,
         function (id) {
           Job.findOneAndRemove({ id }).then((result) => {});
-          Friend.findByIdAndUpdate(
-            id,
-            { $set: { connected: false } },
-            { new: true }
-          ).then((result) => {});
+          if (job.type == "FRIEND")
+            Friend.findByIdAndUpdate(
+              id,
+              { $set: { connected: false } },
+              { new: true }
+            ).then((result) => {});
+          else
+            User.findByIdAndUpdate(
+              id,
+              { $set: { status: true } },
+              { new: true }
+            ).then((result) => {});
         }.bind(null, id)
       );
     });

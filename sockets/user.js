@@ -1043,7 +1043,7 @@ const needy = (io, socket, socketUsers) => {
   });
   socket.on(events_list.FIND_FRIENDS, async (payload) => {
     const { team_id, user_id, userLocation } = payload;
-    console.log({ payload });
+    console.log({ userLocation });
     try {
       const requester = await User.findById(user_id).select("-password");
 
@@ -1059,18 +1059,12 @@ const needy = (io, socket, socketUsers) => {
                   $expr: { $and: [{ $in: ["$phone", "$$member.phone"] }] },
                 },
               },
-              {
-                $project: {
-                  password: 0,
-                },
-              },
+              { $project: { password: 0 } },
             ],
             as: "team_members",
           },
         },
-        {
-          $project: { team_members: 1 },
-        },
+        { $project: { team_members: 1 } },
       ]);
 
       if (allUsersInTeam[0].team_members.length === 0) {
@@ -1080,15 +1074,24 @@ const needy = (io, socket, socketUsers) => {
         });
       }
 
+      const { nearestFriends } = await myFriends(requester);
+
+      let members = [...allUsersInTeam[0].team_members, ...nearestFriends];
+
       const userSortedDistances = geolib.orderByDistance(
         userLocation,
-        allUsersInTeam[0].team_members.map((user) => {
-          return {
-            latitude: user.location.lat,
-            longitude: user.location.lng,
-            user,
-          };
-        })
+        members
+          .filter(
+            (item, index) =>
+              members.findIndex((_item) => item._id == _item._id) === index
+          )
+          .map((user) => {
+            return {
+              latitude: user.location.lat,
+              longitude: user.location.lng,
+              user,
+            };
+          })
       );
 
       socket.emit(events_list.FIND_FRIENDS, {
