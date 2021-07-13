@@ -575,7 +575,9 @@ const needy = (io, socket, socketUsers) => {
         throw { message: "Team does not exist" };
         // return res.status(404).send({ message: "Team does not exist!" });
       }
-
+      team.team_members = team.team_members.filter(
+        (member) => member.connected && member.visibility
+      );
       const teamPhoneNumbers = team.team_members.map((t) => {
         return t.phone;
       });
@@ -757,6 +759,9 @@ const needy = (io, socket, socketUsers) => {
       if (!teamExists) throw { message: "Team does not exist!" };
       // return res.status(404).send("Team does not exist");
 
+      teamExists.team_members = teamExists.team_members.filter(
+        (member) => member.connected && member.visibility
+      );
       const teamPhoneNumbers = teamExists.team_members.map((t) => {
         return t.phone;
       });
@@ -882,6 +887,9 @@ const needy = (io, socket, socketUsers) => {
       // const oneSignalIds = await User.find({
       //   _id: { $in: filteredUserIds },
       // });
+      teamExists.team_members = teamExists.team_members.filter(
+        (member) => member.connected && member.visibility
+      );
 
       const teamPhoneNumbers = teamExists.team_members.map((t) => {
         return t.phone;
@@ -990,6 +998,11 @@ const needy = (io, socket, socketUsers) => {
       //   requester: requester,
       //   team_id,
       // });
+
+      cancelledRequest.team_selected.team_members =
+        cancelledRequest.team_selected.team_members.filter(
+          (member) => member.connected && member.visibility
+        );
 
       const filteredPhoneNumbers =
         cancelledRequest.team_selected.team_members.map((item) => {

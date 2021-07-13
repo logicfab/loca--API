@@ -8,6 +8,8 @@ const Vehicle = require("../../models/vehicle");
 
 const schedule = require("node-schedule");
 const Mongoose = require("mongoose");
+const { Invite } = require("../../models/Invite");
+const { Friend } = require("../../models/Friend");
 // route  -> /user/GetUsersById/:id
 // desc   -> GET USER BY USER ID
 // Method -> GET
@@ -273,6 +275,93 @@ router.post("/pause", Auth, async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).send({ msg: error.message });
+  }
+});
+router.post("/invites", Auth, async (req, res) => {
+  console.log(req.user._id);
+  const invites = await Invite.find({
+    $and: [{ invite_to: req.user._id }, { status: "Pending" }],
+  })
+    .populate({
+      path: "invite_by invite_to",
+      model: "user",
+      select: "-password",
+    })
+    .populate({ path: "team_id", model: "team" });
+
+  res.send({ invites });
+});
+router.post("/cancel-invite", Auth, async (req, res) => {
+  const { invite_id } = req.body;
+
+  await Invite.findByIdAndUpdate(
+    invite_id,
+    {
+      $set: { status: "Rejected" },
+    },
+    { new: true }
+  );
+  res.send({ msg: "Invite cancelled" });
+});
+router.post("/accept-invite", Auth, async (req, res) => {
+  const { invite_id } = req.body;
+
+  const invite = await Invite.findByIdAndUpdate(
+    invite_id,
+    { $set: { status: "Accepted" } },
+    { new: true }
+  );
+
+  if (invite._type == "FRIEND") {
+    const request = await Friend.findOneAndUpdate(
+      { invite_id },
+      {
+        $set: { status: "Accepted", connected: true },
+      }
+    );
+    const date1 = new Date();
+    const date2 = new Date();
+
+    const users = await User.find({
+      phone: { $in: [request.user1.phone, request.user2.phone] },
+    });
+
+    if (users[0].detection_time) {
+      date1.setHours(date1.getHours() + users[0].detection_time.hours);
+      date1.setMinutes(date1.getMinutes() + users[0].detection_time.minutes);
+    }
+    if (users[1].detection_time) {
+      date2.setHours(date2.getHours() + users[1].detection_time.hours);
+      date2.setHours(date2.getMinutes() + users[1].detection_time.hours);
+    }
+
+    let ended_at = null;
+    if (date1 > date2) {
+      ended_at = date1;
+    } else {
+      ended_at = date2;
+    }
+
+    const job = new CronJob({ id: invite_id, ended_at, type: "FRIEND" });
+
+    await job.save();
+
+    schedule.scheduleJob(
+      invite_id,
+      ended_at,
+      function (_id) {
+        CronJob.findOneAndRemove({ id: _id }).then((result) => {});
+        Friend.findByIdAndUpdate(
+          _id,
+          { $set: { connected: false } },
+          { new: true }
+        ).then((result) => {});
+      }.bind(null, invite_id)
+    );
+
+    return res.send({ msg: "Friend Connection invite accepted" });
+  } else {
+    // :TODO: Handle or cancel the group invite
   }
 });
 

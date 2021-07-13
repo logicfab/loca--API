@@ -7,6 +7,7 @@ const { myFriends } = require("../../../controllers/FriendController.jS");
 
 const { CronJob } = require("../../models/CronJob");
 const { Friend } = require("../../models/Friend");
+const { Invite } = require("../../models/Invite");
 
 router.post("/send-request", auth, async (req, res) => {
   try {
@@ -29,21 +30,26 @@ router.post("/send-request", auth, async (req, res) => {
       return res.json({ msg: "Request already sent", status: false });
     }
 
+    const otherUser = await User.findOne({ phone: user });
+
+    const invite = new Invite({
+      invite_by: req.user._id,
+      invite_to: otherUser._id,
+      _type: "FRIEND",
+    });
+
+    await invite.save();
     const friend = await Friend.findOneAndUpdate(
       {
         user1: { phone: me },
         user2: { phone: user },
       },
-      { $set: { status: "Pending" } },
+      { $set: { status: "Pending", invite_id: invite._id, connected: false } },
       { new: true, upsert: true }
     );
 
-    const otherUser = await User.findOne({ phone: user });
-
-    console.log("otherUser :>> ", otherUser);
-
     sendNotification(
-      "New friend Request",
+      "New Connection Request",
       `${req.user.first_name} Would like to connect with you!`,
       {
         requester: req.user._id,
@@ -208,7 +214,7 @@ router.post("/cancel-request", auth, async (req, res) => {
 router.post("/disconnect", auth, async (req, res, next) => {
   try {
     const { _id } = req.body;
-    const friend = await Friend.findByIdAndUpdate(
+    const friend = await Freind.findByIdAndUpdate(
       _id,
       { $set: { connected: false } },
       { new: true }

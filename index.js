@@ -10,6 +10,7 @@ const { socketioConnect } = require("./sockets/socket");
 const { CronJob } = require("./src/models/CronJob");
 const { Friend } = require("./src/models/Friend");
 const User = require("./src/models/User");
+const Team = require("./src/models/Team");
 
 const PORT = process.env.PORT || 5002;
 
@@ -54,19 +55,31 @@ CronJob.find()
         id,
         ended_at,
         function (id) {
-          Job.findOneAndRemove({ id }).then((result) => {});
-          if (job.type == "FRIEND")
-            Friend.findByIdAndUpdate(
-              id,
-              { $set: { connected: false } },
-              { new: true }
-            ).then((result) => {});
-          else
-            User.findByIdAndUpdate(
-              id,
-              { $set: { status: true } },
-              { new: true }
-            ).then((result) => {});
+          CronJob.findOneAndRemove({ id }).then((job) => {
+            const { id, type } = job;
+
+            if (type == "FRIEND")
+              Friend.findByIdAndUpdate(
+                id,
+                { $set: { connected: false } },
+                { new: true }
+              ).then((result) => {});
+            else if (type == "GROUP") {
+              const { phone, team_id } = job._group;
+              Team.findByIdAndUpdate(
+                team_id,
+                { $set: { "team_members.$[member].connected": false } },
+                { arrayFilters: [{ "member.phone": phone }], new: true }
+              )
+                .then((result) => console.log("DISCONNECTED"))
+                .catch((err) => console.log(err));
+            } else
+              User.findByIdAndUpdate(
+                id,
+                { $set: { status: true } },
+                { new: true }
+              ).then((result) => {});
+          });
         }.bind(null, id)
       );
     });

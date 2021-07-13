@@ -14,6 +14,7 @@ const schema = new mongoose.Schema(
         number: { type: String, required: true, trim: true },
       },
     },
+    invite_id: { type: mongoose.Schema.Types.ObjectId },
     connected: { type: Boolean, default: false },
     status: {
       type: String,
