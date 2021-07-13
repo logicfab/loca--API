@@ -1,5 +1,6 @@
 {
-  "dbURI": "mongodb://Logicfab:logicfab12345@loca-shard-00-00.uhhut.mongodb.net:27017,loca-shard-00-01.uhhut.mongodb.net:27017,loca-shard-00-02.uhhut.mongodb.net:27017/test?ssl=true&replicaSet=atlas-ogpe8j-shard-0&authSource=admin&retryWrites=true&w=majority",
+  "dbURI1": "mongodb://Logicfab:logicfab12345@loca-shard-00-00.uhhut.mongodb.net:27017,loca-shard-00-01.uhhut.mongodb.net:27017,loca-shard-00-02.uhhut.mongodb.net:27017/test?ssl=true&replicaSet=atlas-ogpe8j-shard-0&authSource=admin&retryWrites=true&w=majority",
+  "dbURI": "mongodb+srv://naeemhassan:Pakistan888@logicfab.stttl.mongodb.net/local-v2?retryWrites=true&w=majority",
   "email": "lodash.naeem@gmail.com",
   "password": "Pakistan888Nuttertools",
   "host": "https://loca-app-v3.herokuapp.com",

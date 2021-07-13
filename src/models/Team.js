@@ -2,17 +2,9 @@ const mongoose = require("mongoose");
 
 const TeamSchema = mongoose.Schema(
   {
-    team_by: {
-      type: mongoose.Types.ObjectId,
-      ref: "user",
-      required: true,
-      trim: true,
-    },
-    team_name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+    team_by: { type: mongoose.Types.ObjectId, ref: "user", required: true },
+    link: { type: String },
+    team_name: { type: String, required: true, trim: true },
     team_type: {
       type: String,
       trim: true,
@@ -21,17 +13,11 @@ const TeamSchema = mongoose.Schema(
     },
     team_members: [
       {
+        connected: { type: Boolean, default: true },
+        visibility: { type: Boolean, default: true },
         phone: {
-          code: {
-            type: String,
-            required: true,
-            trim: true,
-          },
-          number: {
-            type: String,
-            required: true,
-            trim: true,
-          },
+          code: { type: String, required: true, trim: true },
+          number: { type: String, required: true, trim: true },
         },
       },
     ],

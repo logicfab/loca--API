@@ -1,11 +1,16 @@
 const express = require("express");
 const app = express();
 const cors = require("cors");
-const socketIO = require("socket.io");
+const path = require("path");
+const schedule = require("node-schedule");
+
 const connectDb = require("./helpers/connectDb");
 const { socketioConnect } = require("./sockets/socket");
-const getConnectedTest = require("./sockets/user");
-const path = require("path");
+
+const { CronJob } = require("./src/models/CronJob");
+const { Friend } = require("./src/models/Friend");
+const User = require("./src/models/User");
+const Team = require("./src/models/Team");
 
 const PORT = process.env.PORT || 5002;
 
@@ -40,3 +45,43 @@ const server = app.listen(PORT, () => {
 const io = require("socket.io").listen(server);
 // io.on("connection", (socket) => {console.log("user connected")});
 socketioConnect(io);
+
+// Running Active Cron Jobs=>>>>>
+CronJob.find()
+  .then((activeJobs) => {
+    console.log("Found ", activeJobs.length, " Jobs");
+    activeJobs.forEach(({ id, ended_at }) => {
+      schedule.scheduleJob(
+        id,
+        ended_at,
+        function (id) {
+          CronJob.findOneAndRemove({ id }).then((job) => {
+            const { id, type } = job;
+
+            if (type == "FRIEND")
+              Friend.findByIdAndUpdate(
+                id,
+                { $set: { connected: false } },
+                { new: true }
+              ).then((result) => {});
+            else if (type == "GROUP") {
+              const { phone, team_id } = job._group;
+              Team.findByIdAndUpdate(
+                team_id,
+                { $set: { "team_members.$[member].connected": false } },
+                { arrayFilters: [{ "member.phone": phone }], new: true }
+              )
+                .then((result) => console.log("DISCONNECTED"))
+                .catch((err) => console.log(err));
+            } else
+              User.findByIdAndUpdate(
+                id,
+                { $set: { status: true } },
+                { new: true }
+              ).then((result) => {});
+          });
+        }.bind(null, id)
+      );
+    });
+  })
+  .catch((err) => {});

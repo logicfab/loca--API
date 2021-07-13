@@ -56,7 +56,7 @@ module.exports = {
     } catch (e) {
       if (e instanceof OneSignal.HTTPError) {
         // When status code of HTTP response is not 2xx, HTTPError is thrown.
-        console.log("ERROR IN SENDING THE NOTIFICATION----> ", e);
+        console.log("ERROR IN SENDING THE NOTIFICATION----> ");
         console.log(e.statusCode);
         console.log(e.body);
       }

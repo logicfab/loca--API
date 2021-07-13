@@ -1,8 +1,15 @@
 const e = require("express");
 const express = require("express");
+const Auth = require("../../../middlewares/Auth");
+const { CronJob } = require("../../models/CronJob");
 const User = require("../../models/User");
 const router = express.Router();
 const Vehicle = require("../../models/vehicle");
+
+const schedule = require("node-schedule");
+const Mongoose = require("mongoose");
+const { Invite } = require("../../models/Invite");
+const { Friend } = require("../../models/Friend");
 // route  -> /user/GetUsersById/:id
 // desc   -> GET USER BY USER ID
 // Method -> GET
@@ -191,7 +198,6 @@ router.put("/setOnesignalId/:id", async (req, res) => {
     res.status(500).send(err.message ? { msg: err.message } : err);
   }
 });
-
 router.post("/get-vehicle-location", async (req, res) => {
   const { user_id } = req.body;
   try {
@@ -204,6 +210,156 @@ router.post("/get-vehicle-location", async (req, res) => {
   } catch (e) {
     console.log(e);
     res.status(400).send({ message: "Not Found" });
+  }
+});
+router.post("/set-connection-time", Auth, async (req, res) => {
+  try {
+    const { hours, minutes } = req.body;
+
+    await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $set: { connection_time: { hours, minutes } },
+      },
+      { new: true }
+    );
+
+    res.send({ msg: `Detection Time set to  ${hours}H and ${minutes}M` });
+  } catch (error) {
+    res.status(500).send({ msg: error.message });
+  }
+});
+router.post("/pause", Auth, async (req, res) => {
+  try {
+    const { minutes } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: { status: !req.user.status } },
+      { new: true }
+    );
+
+    if (!req.user.status) {
+      const ended_at = new Date();
+      ended_at.setMinutes(ended_at.getMinutes() + minutes);
+
+      const job = new CronJob({ id: req.user._id, ended_at, type: "USER" });
+      await job.save();
+      const id = req.user._id;
+
+      schedule.scheduleJob(
+        Mongoose.Types.ObjectId(id).toString(),
+        ended_at,
+        function (id) {
+          Job.findOneAndRemove({ id }).then((result) => {});
+          User.findByIdAndUpdate(
+            id,
+            { $set: { status: true } },
+            { new: true }
+          ).then((result) => {});
+        }.bind(null, id)
+      );
+    } else {
+      try {
+        schedule.scheduledJobs[req.user._id].cancel();
+        console.log("Job deleted");
+
+        await CronJob.findOneAndRemove({ id: req.user._id });
+      } catch (error) {
+        console.log(error);
+        console.log("NOT FOUND");
+      }
+    }
+    const status = req.user.status ? "Unpause" : "Pause";
+    res.send({ msg: `You've gone into ${status} position` });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({ msg: error.message });
+  }
+});
+router.post("/invites", Auth, async (req, res) => {
+  console.log(req.user._id);
+  const invites = await Invite.find({
+    $and: [{ invite_to: req.user._id }, { status: "Pending" }],
+  })
+    .populate({
+      path: "invite_by invite_to",
+      model: "user",
+      select: "-password",
+    })
+    .populate({ path: "team_id", model: "team" });
+
+  res.send({ invites });
+});
+router.post("/cancel-invite", Auth, async (req, res) => {
+  const { invite_id } = req.body;
+
+  await Invite.findByIdAndUpdate(
+    invite_id,
+    {
+      $set: { status: "Rejected" },
+    },
+    { new: true }
+  );
+  res.send({ msg: "Invite cancelled" });
+});
+router.post("/accept-invite", Auth, async (req, res) => {
+  const { invite_id } = req.body;
+
+  const invite = await Invite.findByIdAndUpdate(
+    invite_id,
+    { $set: { status: "Accepted" } },
+    { new: true }
+  );
+
+  if (invite._type == "FRIEND") {
+    const request = await Friend.findOneAndUpdate(
+      { invite_id },
+      {
+        $set: { status: "Accepted", connected: true },
+      }
+    );
+    const date1 = new Date();
+    const date2 = new Date();
+
+    const users = await User.find({
+      phone: { $in: [request.user1.phone, request.user2.phone] },
+    });
+
+    if (users[0].connection_time) {
+      date1.setHours(date1.getHours() + users[0].connection_time.hours);
+      date1.setMinutes(date1.getMinutes() + users[0].connection_time.minutes);
+    }
+    if (users[1].connection_time) {
+      date2.setHours(date2.getHours() + users[1].connection_time.hours);
+      date2.setHours(date2.getMinutes() + users[1].connection_time.hours);
+    }
+
+    let ended_at = null;
+    if (date1 > date2) {
+      ended_at = date1;
+    } else {
+      ended_at = date2;
+    }
+
+    const job = new CronJob({ id: invite_id, ended_at, type: "FRIEND" });
+
+    await job.save();
+
+    schedule.scheduleJob(
+      invite_id,
+      ended_at,
+      function (_id) {
+        CronJob.findOneAndRemove({ id: _id }).then((result) => {});
+        Friend.findByIdAndUpdate(
+          _id,
+          { $set: { connected: false } },
+          { new: true }
+        ).then((result) => {});
+      }.bind(null, invite_id)
+    );
+
+    return res.send({ msg: "Friend Connection invite accepted" });
   }
 });
 
