@@ -349,7 +349,7 @@ router.post("/send-invite", Auth, async (req, res) => {
 });
 router.post("/accept-invite", Auth, async (req, res) => {
   const { invite_id } = req.body;
-  const { phone, detection_time } = req.user;
+  const { phone, connection_time } = req.user;
   console.log(req.user);
   const invite = await Invite.findByIdAndUpdate(
     invite_id,
@@ -383,8 +383,8 @@ router.post("/accept-invite", Auth, async (req, res) => {
   }
 
   const ended_at = new Date();
-  ended_at.setHours(ended_at.getHours() + detection_time.hours);
-  ended_at.setMinutes(ended_at.getMinutes() + detection_time.minutes);
+  ended_at.setHours(ended_at.getHours() + connection_time.hours);
+  ended_at.setMinutes(ended_at.getMinutes() + connection_time.minutes);
 
   const job = new CronJob({
     id: invite_id,
@@ -421,7 +421,7 @@ router.post("/accept-invite", Auth, async (req, res) => {
 });
 router.post("/toggle-connect", Auth, async (req, res, next) => {
   const { team_id } = req.body;
-  const { phone, detection_time } = req.user;
+  const { phone, connection_time } = req.user;
 
   const connected = await Team.findOne({
     $and: [
@@ -447,8 +447,8 @@ router.post("/toggle-connect", Auth, async (req, res, next) => {
     }
 
     const ended_at = new Date();
-    ended_at.setHours(ended_at.getHours() + detection_time.hours);
-    ended_at.setMinutes(ended_at.getMinutes() + detection_time.minutes);
+    ended_at.setHours(ended_at.getHours() + connection_time.hours);
+    ended_at.setMinutes(ended_at.getMinutes() + connection_time.minutes);
 
     const job = new CronJob({
       id: team._id,

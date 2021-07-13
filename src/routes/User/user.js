@@ -212,14 +212,14 @@ router.post("/get-vehicle-location", async (req, res) => {
     res.status(400).send({ message: "Not Found" });
   }
 });
-router.post("/set-detection-time", Auth, async (req, res) => {
+router.post("/set-connection-time", Auth, async (req, res) => {
   try {
     const { hours, minutes } = req.body;
 
     await User.findByIdAndUpdate(
       req.user._id,
       {
-        $set: { detection_time: { hours, minutes } },
+        $set: { connection_time: { hours, minutes } },
       },
       { new: true }
     );
@@ -326,13 +326,13 @@ router.post("/accept-invite", Auth, async (req, res) => {
       phone: { $in: [request.user1.phone, request.user2.phone] },
     });
 
-    if (users[0].detection_time) {
-      date1.setHours(date1.getHours() + users[0].detection_time.hours);
-      date1.setMinutes(date1.getMinutes() + users[0].detection_time.minutes);
+    if (users[0].connection_time) {
+      date1.setHours(date1.getHours() + users[0].connection_time.hours);
+      date1.setMinutes(date1.getMinutes() + users[0].connection_time.minutes);
     }
-    if (users[1].detection_time) {
-      date2.setHours(date2.getHours() + users[1].detection_time.hours);
-      date2.setHours(date2.getMinutes() + users[1].detection_time.hours);
+    if (users[1].connection_time) {
+      date2.setHours(date2.getHours() + users[1].connection_time.hours);
+      date2.setHours(date2.getMinutes() + users[1].connection_time.hours);
     }
 
     let ended_at = null;
@@ -360,8 +360,6 @@ router.post("/accept-invite", Auth, async (req, res) => {
     );
 
     return res.send({ msg: "Friend Connection invite accepted" });
-  } else {
-    // :TODO: Handle or cancel the group invite
   }
 });
 

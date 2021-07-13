@@ -24,7 +24,7 @@ const UserSchema = mongoose.Schema(
     otp_verification: { otp: { type: Number }, expiresIn: { type: Date } },
     i_need_help: { type: String, default: false },
     detection_radius: { type: Number, default: 2 },
-    detection_time: { hours: { type: Number }, minutes: { type: Number } },
+    connection_time: { hours: { type: Number }, minutes: { type: Number } },
     is_online: { type: Boolean, default: true },
     status: { type: Boolean, default: true },
   },
